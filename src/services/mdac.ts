@@ -1,28 +1,306 @@
-// SELECTOR NOTE: These selectors are best-effort. Run against live site and update as needed.
-// The MDAC form at https://imigresen-online.imi.gov.my/mdac/main is a dynamic JS form.
-// Selectors may drift as the site updates — test after any site changes.
+/**
+ * Playwright automation for the official MDAC form.
+ *
+ * SELECTOR NOTE: These selectors target the actual form field `name` attributes
+ * observed on https://imigresen-online.imi.gov.my/mdac/main?registerMain
+ * (Java/Stripes server, jQuery + Bootstrap 3). Selectors may drift — test
+ * against the live site after any site changes.
+ */
 
-import { chromium } from "playwright";
+import { chromium, type Browser, type Page } from "playwright";
 import { MdacFormData, SubmitResult, RetrieveResult } from "../types";
 
-const MDAC_URL = "https://imigresen-online.imi.gov.my/mdac/main";
+const MDAC_URL = "https://imigresen-online.imi.gov.my/mdac/main?registerMain";
 const TIMEOUT_MS = 60_000;
 
+// ---- Helpers ----
+
+/** Set a form field value and fire change+input events so the JS framework picks it up. */
+async function setField(page: Page, fieldName: string, value: string): Promise<void> {
+  const selector = `[name="${fieldName}"]`;
+  const el = await page.$(selector);
+  if (!el) {
+    console.warn(`[mdac] Field not found: ${fieldName}`);
+    return;
+  }
+  const tag = await el.evaluate((e) => e.tagName.toLowerCase());
+  if (tag === "select") {
+    await page.selectOption(selector, value);
+  } else {
+    await el.fill(value);
+  }
+  await el.dispatchEvent("change");
+  await el.dispatchEvent("input");
+}
+
+/** Wait a beat for any AJAX the form fires after a dropdown change. */
+async function settleAfterChange(page: Page, ms = 500): Promise<void> {
+  await page.waitForTimeout(ms);
+}
+
+// ---- Phase 1: Fill the form ----
+
 /**
- * Convert YYYY-MM-DD to DD/MM/YYYY (the format MDAC expects for date inputs).
+ * Navigate to the MDAC form and fill every field. Leaves the page at the
+ * point where the user needs to solve the CAPTCHA and click Submit.
  */
-function toMdacDate(isoDate: string): string {
-  const [year, month, day] = isoDate.split("-");
-  return `${day}/${month}/${year}`;
+export async function fillForm(page: Page, data: MdacFormData): Promise<void> {
+  console.log("[mdac] Navigating to MDAC form...");
+  await page.goto(MDAC_URL, { waitUntil: "networkidle", timeout: TIMEOUT_MS });
+
+  // If there's a "New Registration" landing page, click through it
+  const newRegBtn = page.locator(
+    'button:has-text("New Registration"), a:has-text("New Registration"), ' +
+    'button:has-text("Apply Now"), a:has-text("Apply Now")'
+  );
+  if ((await newRegBtn.count()) > 0) {
+    await newRegBtn.first().click();
+    await page.waitForLoadState("networkidle");
+  }
+
+  // ---- Personal fields ----
+  await setField(page, "name", data.name);
+  await setField(page, "passNo", data.passNo);
+  await setField(page, "dob", data.dob);
+  await setField(page, "nationality", data.nationality);
+  await settleAfterChange(page); // nationality may trigger dependent fields
+  await setField(page, "pob", data.pob);
+  await setField(page, "sex", data.sex);
+  await setField(page, "passExpDte", data.passExpDte);
+  await setField(page, "email", data.email);
+  await setField(page, "confirmEmail", data.confirmEmail);
+  await setField(page, "region", data.region);
+  await setField(page, "mobile", data.mobile);
+
+  // ---- Travel fields ----
+  await setField(page, "arrDt", data.arrDt);
+  await setField(page, "depDt", data.depDt);
+  await setField(page, "vesselNm", data.vesselNm);
+  await setField(page, "trvlMode", data.trvlMode);
+  await setField(page, "embark", data.embark);
+
+  // ---- Accommodation fields ----
+  await setField(page, "accommodationStay", data.accommodationStay);
+  await setField(page, "accommodationAddress1", data.accommodationAddress1);
+  await setField(page, "accommodationAddress2", data.accommodationAddress2);
+  await setField(page, "accommodationState", data.accommodationState);
+  await settleAfterChange(page, 1500); // state change triggers city AJAX
+
+  // City dropdown is populated via AJAX after state selection.
+  // Poll until the options appear, then match by display name.
+  const cityName = (data.sCity || "").toLowerCase();
+  if (cityName) {
+    let matched = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const citySelect = await page.$('[name="accommodationCity"]');
+      if (!citySelect) {
+        await page.waitForTimeout(500);
+        continue;
+      }
+      const options = await citySelect.$$eval("option", (opts) =>
+        opts.map((o) => ({ value: (o as unknown as { value: string }).value, text: o.textContent || "" }))
+      );
+      if (options.length <= 1) {
+        await page.waitForTimeout(500);
+        continue;
+      }
+      const match = options.find((o) => o.text.toLowerCase().includes(cityName));
+      if (match) {
+        await setField(page, "accommodationCity", match.value);
+        matched = true;
+        break;
+      }
+      break; // options loaded but no match — stop polling
+    }
+    if (!matched) {
+      console.warn(`[mdac] Could not match city "${data.sCity}" — user may need to select manually`);
+    }
+  } else if (data.accommodationCity) {
+    await setField(page, "accommodationCity", data.accommodationCity);
+  }
+
+  await setField(page, "accommodationPostcode", data.accommodationPostcode);
+
+  // ---- Declaration checkboxes ----
+  const checkboxes = page.locator('input[type="checkbox"]');
+  const count = await checkboxes.count();
+  for (let i = 0; i < count; i++) {
+    const cb = checkboxes.nth(i);
+    if (!(await cb.isChecked())) {
+      await cb.click();
+    }
+  }
+
+  console.log("[mdac] Form filled — ready for CAPTCHA");
+}
+
+// ---- Phase 2: Capture the CAPTCHA ----
+
+export interface CaptchaCapture {
+  imageBase64: string;
+  width: number;
+  height: number;
 }
 
 /**
- * Submit traveler data to the official MDAC form.
+ * Screenshot the CAPTCHA widget on the page.
  *
- * NOTE: This function relies on selectors observed from the MDAC site at time of writing.
- * The site uses a dynamic JS form — selectors WILL need updating if the site changes.
- * Recommended: run with `headless: false` locally to watch the automation and verify selectors.
+ * The MDAC site uses a slider CAPTCHA — typically a container div with a
+ * background image and a draggable handle. We screenshot the entire CAPTCHA
+ * container and return its dimensions so the frontend can render a
+ * proportional slider.
  */
+export async function captureCaptcha(page: Page): Promise<CaptchaCapture> {
+  // Common slider CAPTCHA selectors — try multiple patterns
+  const captchaSelectors = [
+    ".captcha-container",
+    '[class*="captcha"]',
+    '[class*="slider"]',
+    '[class*="verify"]',
+    ".blockPuzzle",
+    "#captcha",
+    'canvas[class*="captcha"]',
+    '[id*="captcha"]',
+  ];
+
+  let captchaEl = null;
+  for (const sel of captchaSelectors) {
+    const loc = page.locator(sel).first();
+    if ((await loc.count()) > 0 && (await loc.isVisible())) {
+      captchaEl = loc;
+      break;
+    }
+  }
+
+  if (!captchaEl) {
+    // Fallback: screenshot the area around the submit button
+    console.warn("[mdac] No CAPTCHA element found — screenshotting bottom of form");
+    const screenshot = await page.screenshot({ type: "png", fullPage: false });
+    return {
+      imageBase64: screenshot.toString("base64"),
+      width: 1280,
+      height: 720,
+    };
+  }
+
+  const box = await captchaEl.boundingBox();
+  const screenshot = await captchaEl.screenshot({ type: "png" });
+  return {
+    imageBase64: screenshot.toString("base64"),
+    width: box?.width ?? 300,
+    height: box?.height ?? 200,
+  };
+}
+
+// ---- Phase 3: Solve CAPTCHA and submit ----
+
+/**
+ * Replay the user's slider drag on the CAPTCHA element and click Submit.
+ *
+ * @param sliderX - The x-offset in pixels where the user placed the slider handle
+ */
+export async function solveCaptchaAndSubmit(
+  page: Page,
+  sliderX: number
+): Promise<SubmitResult> {
+  // Find the slider handle (the draggable piece)
+  const handleSelectors = [
+    '[class*="slider"] [class*="handle"]',
+    '[class*="slider"] [class*="btn"]',
+    '[class*="captcha"] [class*="drag"]',
+    '[class*="verify"] [class*="handler"]',
+    '[class*="slider-btn"]',
+    '.handler',
+    '[class*="slide"] button',
+    '[class*="slide"] [class*="icon"]',
+  ];
+
+  let handle = null;
+  for (const sel of handleSelectors) {
+    const loc = page.locator(sel).first();
+    if ((await loc.count()) > 0 && (await loc.isVisible())) {
+      handle = loc;
+      break;
+    }
+  }
+
+  if (handle) {
+    const handleBox = await handle.boundingBox();
+    if (handleBox) {
+      const startX = handleBox.x + handleBox.width / 2;
+      const startY = handleBox.y + handleBox.height / 2;
+
+      // Simulate a human-like drag
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      // Move in small increments to appear more natural
+      const steps = 10;
+      for (let i = 1; i <= steps; i++) {
+        const progress = i / steps;
+        const currentX = startX + sliderX * progress;
+        await page.mouse.move(currentX, startY + (Math.random() * 2 - 1));
+        await page.waitForTimeout(20 + Math.random() * 30);
+      }
+      await page.mouse.move(startX + sliderX, startY);
+      await page.mouse.up();
+      await page.waitForTimeout(1000); // wait for CAPTCHA validation
+    }
+  } else {
+    console.warn("[mdac] No slider handle found — attempting submit without CAPTCHA solve");
+  }
+
+  // Click the submit button
+  const submitBtn = page.locator(
+    'button[type="submit"], input[type="submit"], ' +
+    'button:has-text("Submit"), button:has-text("Confirm"), button:has-text("Register")'
+  );
+  if ((await submitBtn.count()) > 0) {
+    await submitBtn.first().click();
+  }
+
+  // Wait for success or error
+  await page.waitForSelector(
+    '.success, .alert-success, [class*="success"], [class*="confirmation"], ' +
+    'h2:has-text("Thank"), h2:has-text("Success"), p:has-text("PIN")',
+    { timeout: 30_000 }
+  ).catch(() => null);
+
+  // Check for error messages
+  const errorEl = page.locator('.alert-danger, .error, [class*="error"], [class*="alert-danger"]');
+  if ((await errorEl.count()) > 0) {
+    const errorText = await errorEl.first().textContent();
+    const text = errorText?.trim() || "Form submission error";
+    // Check if it's a CAPTCHA failure (retryable)
+    const isCaptchaError = text.toLowerCase().includes("captcha") ||
+      text.toLowerCase().includes("verification") ||
+      text.toLowerCase().includes("slider");
+    return {
+      success: false,
+      error: text,
+      retryable: isCaptchaError,
+    };
+  }
+
+  // Check for success
+  const successEl = page.locator('.alert-success, [class*="success"], [class*="confirmation"]');
+  const pinText = page.locator('p:has-text("PIN"), span:has-text("PIN"), div:has-text("PIN code")');
+  if ((await successEl.count()) > 0 || (await pinText.count()) > 0) {
+    return {
+      success: true,
+      message: "Submission complete. Check your email for your PIN code.",
+    };
+  }
+
+  // Fallback
+  console.log("[mdac] No clear success/error indicator — assuming success");
+  return {
+    success: true,
+    message: "Submission complete. Check your email for your PIN code.",
+  };
+}
+
+// ---- Legacy one-shot function (kept for backward compat) ----
+
 export async function submitMDAC(data: MdacFormData): Promise<SubmitResult> {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -33,268 +311,9 @@ export async function submitMDAC(data: MdacFormData): Promise<SubmitResult> {
   page.setDefaultTimeout(TIMEOUT_MS);
 
   try {
-    console.log("[mdac] Navigating to MDAC form...");
-    await page.goto(MDAC_URL, { waitUntil: "networkidle", timeout: TIMEOUT_MS });
-
-    // SELECTOR NOTE: The MDAC site may show a language selection or landing page first.
-    // If there's a "New Registration" or "Apply" button, click it.
-    // TODO: Verify the actual button text/selector on the live site.
-    const newRegistrationButton = page.locator(
-      'button:has-text("New Registration"), a:has-text("New Registration"), button:has-text("Apply Now"), a:has-text("Apply Now")'
-    );
-    if (await newRegistrationButton.count() > 0) {
-      await newRegistrationButton.first().click();
-      await page.waitForLoadState("networkidle");
-    }
-
-    // ---- PERSONAL INFORMATION SECTION ----
-
-    // Full Name
-    // SELECTOR NOTE: Try label-based first, fall back to name/id attributes.
-    // TODO: Verify exact label text on live site.
-    await page.waitForSelector('input[name="fullName"], input[id*="fullName"], input[placeholder*="Full Name"]');
-    await page.fill(
-      'input[name="fullName"], input[id*="fullName"], input[placeholder*="Full Name"]',
-      data.fullName
-    );
-
-    // Passport Number
-    // SELECTOR NOTE: May be labeled "Passport No." or "Passport Number"
-    await page.waitForSelector('input[name="passportNo"], input[id*="passport"], input[placeholder*="Passport"]');
-    await page.fill(
-      'input[name="passportNo"], input[id*="passport"], input[placeholder*="Passport"]',
-      data.passportNumber
-    );
-
-    // Nationality
-    // SELECTOR NOTE: This is likely a dropdown/select element.
-    // TODO: Verify exact option values on the live site — they may be country codes or full names.
-    await page.waitForSelector('select[name="nationality"], select[id*="nationality"]');
-    await page.selectOption(
-      'select[name="nationality"], select[id*="nationality"]',
-      { label: data.nationality }
-    ).catch(async () => {
-      // Fallback: try selecting by value if label doesn't match
-      await page.selectOption(
-        'select[name="nationality"], select[id*="nationality"]',
-        { value: data.nationality }
-      );
-    });
-
-    // Date of Birth
-    // SELECTOR NOTE: May be a date picker or three separate fields (day/month/year).
-    // TODO: Verify the date input format on the live site.
-    const dobInputs = await page.locator('input[name*="dob"], input[id*="dob"], input[name*="birth"], input[id*="birth"]').count();
-    if (dobInputs > 0) {
-      // Single date field
-      await page.fill(
-        'input[name*="dob"], input[id*="dob"], input[name*="birth"], input[id*="birth"]',
-        toMdacDate(data.dateOfBirth)
-      );
-    }
-
-    // Sex / Gender
-    // SELECTOR NOTE: Could be radio buttons or a select dropdown.
-    // TODO: Verify the input type and option values on the live site.
-    const sexSelect = page.locator('select[name="sex"], select[id*="sex"], select[name*="gender"], select[id*="gender"]');
-    const sexRadio = page.locator(`input[type="radio"][value="${data.sex}"], input[type="radio"][value="${data.sex.toLowerCase()}"]`);
-    if (await sexSelect.count() > 0) {
-      await sexSelect.selectOption({ label: data.sex });
-    } else if (await sexRadio.count() > 0) {
-      await sexRadio.first().click();
-    }
-
-    // Passport Issue Date
-    // SELECTOR NOTE: May be labeled "Date of Issue" or "Issue Date"
-    // TODO: Verify exact field selector on live site.
-    const issueInput = page.locator('input[name*="issue"], input[id*="issue"]');
-    if (await issueInput.count() > 0) {
-      await issueInput.first().fill(toMdacDate(data.passportIssueDate));
-    }
-
-    // Passport Expiry Date
-    // SELECTOR NOTE: May be labeled "Date of Expiry" or "Expiry Date"
-    const expiryInput = page.locator('input[name*="expiry"], input[id*="expiry"], input[name*="expire"], input[id*="expire"]');
-    if (await expiryInput.count() > 0) {
-      await expiryInput.first().fill(toMdacDate(data.passportExpiry));
-    }
-
-    // Email
-    await page.waitForSelector('input[type="email"], input[name*="email"], input[id*="email"]');
-    await page.fill(
-      'input[type="email"], input[name*="email"], input[id*="email"]',
-      data.email
-    );
-
-    // Phone Country Code + Number
-    // SELECTOR NOTE: Phone may be split into country code dropdown + number field.
-    // TODO: Verify the country code format expected (e.g. "+1", "001", "US").
-    const phoneCodeSelect = page.locator('select[name*="phoneCode"], select[id*="phoneCode"], select[name*="countryCode"], select[id*="countryCode"]');
-    if (await phoneCodeSelect.count() > 0) {
-      await phoneCodeSelect.selectOption({ label: data.phoneCountryCode }).catch(async () => {
-        await phoneCodeSelect.selectOption({ value: data.phoneCountryCode });
-      });
-    }
-    const phoneInput = page.locator('input[type="tel"], input[name*="phone"], input[id*="phone"]');
-    if (await phoneInput.count() > 0) {
-      await phoneInput.first().fill(data.phoneNumber);
-    }
-
-    // Home Address (residential address in home country)
-    // SELECTOR NOTE: May be a textarea or multi-line input.
-    // TODO: Verify selector and whether this maps to a single field or multiple (street, city, country).
-    const homeAddressInput = page.locator('textarea[name*="homeAddress"], textarea[id*="homeAddress"], input[name*="homeAddress"], input[id*="homeAddress"], textarea[name*="address"], input[name*="address"]');
-    if (await homeAddressInput.count() > 0) {
-      await homeAddressInput.first().fill(data.homeAddress);
-    }
-
-    // ---- TRAVEL INFORMATION SECTION ----
-
-    // Arrival Date
-    // SELECTOR NOTE: May have a min/max constraint set by the site.
-    const arrivalInput = page.locator('input[name*="arrival"], input[id*="arrival"]');
-    if (await arrivalInput.count() > 0) {
-      await arrivalInput.first().fill(toMdacDate(data.arrivalDate));
-    }
-
-    // Flight Number
-    // SELECTOR NOTE: May be labeled "Flight/Vessel No." or "Flight Number"
-    const flightInput = page.locator('input[name*="flight"], input[id*="flight"], input[name*="vessel"], input[id*="vessel"]');
-    if (await flightInput.count() > 0) {
-      await flightInput.first().fill(data.flightNumber);
-    }
-
-    // Port of Entry
-    // SELECTOR NOTE: Likely a select dropdown. Option values may differ from display labels.
-    // TODO: Map portOfEntry strings to the exact option values used by the MDAC site.
-    const portSelect = page.locator('select[name*="port"], select[id*="port"]');
-    if (await portSelect.count() > 0) {
-      await portSelect.selectOption({ label: data.portOfEntry }).catch(async () => {
-        // Try partial match by looping through options
-        const options = await portSelect.locator("option").allTextContents();
-        const match = options.find((o) => o.includes(data.portOfEntry));
-        if (match) await portSelect.selectOption({ label: match });
-      });
-    }
-
-    // Departure City
-    // SELECTOR NOTE: The city/country the traveler is departing from.
-    // TODO: May be a select dropdown or free-text input.
-    const depCityInput = page.locator('input[name*="departure"], input[id*="departure"], select[name*="departure"], select[id*="departure"]');
-    if (await depCityInput.count() > 0) {
-      const tag = await depCityInput.first().evaluate((el) => el.tagName.toLowerCase());
-      if (tag === "select") {
-        await page.selectOption(
-          'select[name*="departure"], select[id*="departure"]',
-          { label: data.departureCity }
-        ).catch(() => {});
-      } else {
-        await depCityInput.first().fill(data.departureCity);
-      }
-    }
-
-    // Duration of Stay
-    // SELECTOR NOTE: Number of days, typically 1–90. May be a number input or select.
-    const durationInput = page.locator('input[name*="duration"], input[id*="duration"], select[name*="duration"], select[id*="duration"]');
-    if (await durationInput.count() > 0) {
-      const tag = await durationInput.first().evaluate((el) => el.tagName.toLowerCase());
-      if (tag === "select") {
-        await page.selectOption(
-          'select[name*="duration"], select[id*="duration"]',
-          { value: String(data.durationOfStay) }
-        ).catch(() => {});
-      } else {
-        await durationInput.first().fill(String(data.durationOfStay));
-      }
-    }
-
-    // Hotel / Accommodation Name
-    // SELECTOR NOTE: May be labeled "Name of Hotel" or "Place of Accommodation"
-    const hotelInput = page.locator('input[name*="hotel"], input[id*="hotel"], input[name*="accommodation"], input[id*="accommodation"]');
-    if (await hotelInput.count() > 0) {
-      await hotelInput.first().fill(data.hotelName);
-    }
-
-    // Address in Malaysia
-    // SELECTOR NOTE: Full address of accommodation, may be a textarea.
-    const myAddressInput = page.locator('textarea[name*="addressMY"], textarea[id*="addressMY"], input[name*="addressMY"], input[name*="stayAddress"], textarea[name*="stayAddress"]');
-    if (await myAddressInput.count() > 0) {
-      await myAddressInput.first().fill(data.addressInMalaysia);
-    }
-
-    // City in Malaysia
-    // SELECTOR NOTE: City/town of accommodation.
-    const myCityInput = page.locator('input[name*="cityMY"], input[id*="cityMY"], input[name*="city"], input[id*="city"]');
-    if (await myCityInput.count() > 0) {
-      await myCityInput.first().fill(data.cityInMalaysia);
-    }
-
-    // Postal Code
-    // SELECTOR NOTE: 5-digit Malaysian postal code.
-    const postalInput = page.locator('input[name*="postal"], input[id*="postal"], input[name*="zip"], input[id*="zip"]');
-    if (await postalInput.count() > 0) {
-      await postalInput.first().fill(data.postalCode);
-    }
-
-    // Accommodation Phone
-    // SELECTOR NOTE: Phone number of the hotel/accommodation.
-    const accomPhoneInput = page.locator('input[name*="accomPhone"], input[id*="accomPhone"], input[name*="hotelPhone"], input[id*="hotelPhone"]');
-    if (await accomPhoneInput.count() > 0) {
-      await accomPhoneInput.first().fill(data.accommodationPhone);
-    }
-
-    // ---- DECLARATION CHECKBOXES ----
-    // SELECTOR NOTE: The MDAC form typically has 1–2 declaration checkboxes at the bottom.
-    // TODO: Verify exact selector. Some forms use a single checkbox, others use two.
-    const checkboxes = page.locator('input[type="checkbox"]');
-    const checkboxCount = await checkboxes.count();
-    for (let i = 0; i < checkboxCount; i++) {
-      const cb = checkboxes.nth(i);
-      const isChecked = await cb.isChecked();
-      if (!isChecked) {
-        await cb.click();
-      }
-    }
-
-    // ---- SUBMIT ----
-    // SELECTOR NOTE: The submit button may say "Submit", "Confirm", or "Register".
-    // TODO: Verify the exact button text on the live site.
-    const submitButton = page.locator(
-      'button[type="submit"], input[type="submit"], button:has-text("Submit"), button:has-text("Confirm"), button:has-text("Register")'
-    );
-    await submitButton.first().click();
-
-    // Wait for confirmation or error
-    // SELECTOR NOTE: After submit, the page should show a success message or redirect.
-    // TODO: Verify what the success indicator looks like on the live site.
-    await page.waitForSelector(
-      '.success, .alert-success, [class*="success"], [class*="confirmation"], h2:has-text("Thank"), h2:has-text("Success"), p:has-text("PIN")',
-      { timeout: 30_000 }
-    ).catch(() => null);
-
-    // Check for error messages
-    const errorEl = page.locator('.alert-danger, .error, [class*="error"], [class*="alert-danger"]');
-    if (await errorEl.count() > 0) {
-      const errorText = await errorEl.first().textContent();
-      return { success: false, error: errorText?.trim() || "Form submission error" };
-    }
-
-    // Check for success indicators
-    const successEl = page.locator('.alert-success, [class*="success"], [class*="confirmation"]');
-    const pinText = page.locator('p:has-text("PIN"), span:has-text("PIN"), div:has-text("PIN code")');
-    if (await successEl.count() > 0 || await pinText.count() > 0) {
-      return {
-        success: true,
-        message: "Submission complete. Check your email for your PIN code.",
-      };
-    }
-
-    // Fallback: if no clear success/error, assume success (the PIN email will confirm)
-    console.log("[mdac] No clear success/error indicator found — assuming success");
-    return {
-      success: true,
-      message: "Submission complete. Check your email for your PIN code.",
-    };
+    await fillForm(page, data);
+    // In legacy mode, we can't relay the CAPTCHA — just attempt submit directly
+    return await solveCaptchaAndSubmit(page, 0);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[mdac] submitMDAC error:", message);
@@ -304,12 +323,10 @@ export async function submitMDAC(data: MdacFormData): Promise<SubmitResult> {
   }
 }
 
-/**
- * Retrieve the official QR code / confirmation PDF using phone number + PIN.
- *
- * NOTE: Selectors are best-effort. The "Check Registration" section of the MDAC site
- * may differ from the registration form — verify on the live site and update as needed.
- */
+// ---- Retrieve QR code ----
+
+const MDAC_BASE_URL = "https://imigresen-online.imi.gov.my/mdac/main";
+
 export async function retrieveQR(
   phoneCountryCode: string,
   phoneNumber: string,
@@ -325,50 +342,44 @@ export async function retrieveQR(
 
   try {
     console.log("[mdac] Navigating to MDAC retrieve section...");
-    await page.goto(MDAC_URL, { waitUntil: "networkidle", timeout: TIMEOUT_MS });
+    await page.goto(MDAC_BASE_URL, { waitUntil: "networkidle", timeout: TIMEOUT_MS });
 
-    // SELECTOR NOTE: Look for a "Check Registration" / "Retrieve" / "View Status" tab or button.
-    // TODO: Verify the exact label/selector on the live site.
     const checkRegButton = page.locator(
-      'a:has-text("Check Registration"), button:has-text("Check Registration"), a:has-text("View Status"), a:has-text("Retrieve"), button:has-text("Retrieve")'
+      'a:has-text("Check Registration"), button:has-text("Check Registration"), ' +
+      'a:has-text("View Status"), a:has-text("Retrieve"), button:has-text("Retrieve")'
     );
-    if (await checkRegButton.count() > 0) {
+    if ((await checkRegButton.count()) > 0) {
       await checkRegButton.first().click();
       await page.waitForLoadState("networkidle");
     }
 
-    // SELECTOR NOTE: Enter phone country code.
-    // TODO: This may be a select dropdown or a combined input field.
-    const codeSelect = page.locator('select[name*="countryCode"], select[id*="countryCode"], select[name*="phoneCode"], select[id*="phoneCode"]');
-    if (await codeSelect.count() > 0) {
+    // Phone country code
+    const codeSelect = page.locator(
+      'select[name*="countryCode"], select[name*="phoneCode"], select[name*="region"]'
+    );
+    if ((await codeSelect.count()) > 0) {
       await codeSelect.selectOption({ value: phoneCountryCode }).catch(async () => {
         await codeSelect.selectOption({ label: phoneCountryCode });
       });
     }
 
     // Phone number
-    // SELECTOR NOTE: The phone input for retrieval.
-    await page.waitForSelector('input[type="tel"], input[name*="phone"], input[id*="phone"]');
-    await page.fill('input[type="tel"], input[name*="phone"], input[id*="phone"]', phoneNumber);
+    await page.fill('input[type="tel"], input[name*="phone"], input[name*="mobile"]', phoneNumber);
 
     // PIN
-    // SELECTOR NOTE: The PIN sent via email/SMS after registration.
-    // TODO: Verify pin field selector and format (numeric, 6 chars).
-    await page.waitForSelector('input[name*="pin"], input[id*="pin"], input[name*="PIN"], input[id*="PIN"], input[type="password"]');
     await page.fill(
-      'input[name*="pin"], input[id*="pin"], input[name*="PIN"], input[id*="PIN"], input[type="password"]',
+      'input[name*="pin"], input[name*="PIN"], input[type="password"]',
       pin
     );
 
-    // Submit the retrieval form
-    // SELECTOR NOTE: Submit button for the retrieval form.
+    // Submit retrieval
     const retrieveSubmit = page.locator(
-      'button[type="submit"], input[type="submit"], button:has-text("Submit"), button:has-text("Retrieve"), button:has-text("Check")'
+      'button[type="submit"], input[type="submit"], ' +
+      'button:has-text("Submit"), button:has-text("Retrieve"), button:has-text("Check")'
     );
     await retrieveSubmit.first().click();
 
-    // Wait for the confirmation document to appear
-    // SELECTOR NOTE: The result may be a QR image element, a PDF download link, or an inline document.
+    // Wait for result
     await page.waitForSelector(
       'img[src*="qr"], canvas, .qr-code, [class*="qr"], a[href*=".pdf"], iframe',
       { timeout: 30_000 }
@@ -376,36 +387,28 @@ export async function retrieveQR(
 
     // Check for error
     const errorEl = page.locator('.alert-danger, .error, [class*="error"]');
-    if (await errorEl.count() > 0) {
+    if ((await errorEl.count()) > 0) {
       const errorText = await errorEl.first().textContent();
-      return { success: false, error: errorText?.trim() || "Retrieval error — check phone number and PIN" };
+      return { success: false, error: errorText?.trim() || "Retrieval error" };
     }
 
-    // Try to get QR image
-    // SELECTOR NOTE: The QR code might be an <img> tag or a <canvas> element.
-    // TODO: Update selector based on what the live site actually renders.
+    // Try QR image
     const qrImg = page.locator('img[src*="qr"], .qr-code img, [class*="qr"] img').first();
-    const qrCanvas = page.locator('canvas').first();
-
-    if (await qrImg.count() > 0) {
-      // Screenshot the QR image element
-      const screenshotBuffer = await qrImg.screenshot({ type: "png" });
-      const base64 = screenshotBuffer.toString("base64");
-      return { success: true, qrImageBase64: base64 };
+    if ((await qrImg.count()) > 0) {
+      const buf = await qrImg.screenshot({ type: "png" });
+      return { success: true, qrImageBase64: buf.toString("base64") };
     }
 
-    if (await qrCanvas.count() > 0) {
-      // Screenshot the canvas element
-      const screenshotBuffer = await qrCanvas.screenshot({ type: "png" });
-      const base64 = screenshotBuffer.toString("base64");
-      return { success: true, qrImageBase64: base64 };
+    // Try canvas
+    const qrCanvas = page.locator("canvas").first();
+    if ((await qrCanvas.count()) > 0) {
+      const buf = await qrCanvas.screenshot({ type: "png" });
+      return { success: true, qrImageBase64: buf.toString("base64") };
     }
 
-    // Try PDF download link
-    // SELECTOR NOTE: There may be a link to download the confirmation PDF.
+    // Try PDF download
     const pdfLink = page.locator('a[href*=".pdf"], a:has-text("Download"), a:has-text("PDF")').first();
-    if (await pdfLink.count() > 0) {
-      // Intercept the download and capture it as base64
+    if ((await pdfLink.count()) > 0) {
       const [download] = await Promise.all([
         page.waitForEvent("download"),
         pdfLink.click(),
@@ -415,24 +418,17 @@ export async function retrieveQR(
       for await (const chunk of stream) {
         chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
       }
-      const pdfBuffer = Buffer.concat(chunks);
-      const base64 = pdfBuffer.toString("base64");
-      return { success: true, pdfBase64: base64 };
+      return { success: true, pdfBase64: Buffer.concat(chunks).toString("base64") };
     }
 
-    // Fallback: screenshot the whole confirmation area
-    // SELECTOR NOTE: If none of the above worked, capture the visible confirmation section.
-    const confirmationSection = page.locator('.confirmation, [class*="confirmation"], main, #content').first();
-    if (await confirmationSection.count() > 0) {
-      const screenshotBuffer = await confirmationSection.screenshot({ type: "png" });
-      const base64 = screenshotBuffer.toString("base64");
-      return { success: true, qrImageBase64: base64 };
+    // Fallback: screenshot confirmation area
+    const confirmSection = page.locator('.confirmation, [class*="confirmation"], main, #content').first();
+    if ((await confirmSection.count()) > 0) {
+      const buf = await confirmSection.screenshot({ type: "png" });
+      return { success: true, qrImageBase64: buf.toString("base64") };
     }
 
-    return {
-      success: false,
-      error: "Could not locate QR code or PDF on confirmation page. The site layout may have changed.",
-    };
+    return { success: false, error: "Could not locate QR code or PDF. Site layout may have changed." };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[mdac] retrieveQR error:", message);

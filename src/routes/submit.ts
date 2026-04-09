@@ -14,10 +14,10 @@ router.post("/", async (req: Request, res: Response) => {
 
   // Validate minimum required fields
   const required: (keyof MdacFormData)[] = [
-    "fullName",
-    "passportNumber",
+    "name",
+    "passNo",
     "email",
-    "arrivalDate",
+    "arrDt",
   ];
   const missing = required.filter((f) => !data[f]);
   if (missing.length > 0) {
@@ -29,7 +29,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 
   try {
-    console.log(`[submit] Submitting MDAC for: ${data.fullName} (${data.email})`);
+    console.log(`[submit] Submitting MDAC for: ${data.name} (${data.email})`);
     const result = await submitMDAC(data);
     if (result.success) {
       res.status(200).json(result);
