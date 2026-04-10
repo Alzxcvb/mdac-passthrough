@@ -1,8 +1,8 @@
 [build]
-builder = "nixpacks"
+builder = "dockerfile"
 
 [deploy]
-startCommand = "npx playwright install chromium --with-deps && node dist/index.js"
+startCommand = "node dist/index.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"
