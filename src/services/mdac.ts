@@ -15,7 +15,12 @@ const TIMEOUT_MS = 60_000;
 
 // ---- Helpers ----
 
-/** Set a form field value and fire change+input events so the JS framework picks it up. */
+/**
+ * Set a form field value and fire change+input events so the JS framework
+ * picks it up. The MDAC site uses Bootstrap-style datepickers which mark
+ * the underlying input `readonly` — `fill()` fails on those, so we fall
+ * back to a JS evaluate that briefly removes the readonly attribute.
+ */
 async function setField(page: Page, fieldName: string, value: string): Promise<void> {
   const selector = `[name="${fieldName}"]`;
   const el = await page.$(selector);
@@ -27,7 +32,28 @@ async function setField(page: Page, fieldName: string, value: string): Promise<v
   if (tag === "select") {
     await page.selectOption(selector, value);
   } else {
-    await el.fill(value);
+    const isReadonly = await el.evaluate(
+      (e) => e instanceof HTMLInputElement && e.hasAttribute("readonly")
+    );
+    if (isReadonly) {
+      // Bootstrap datepicker — set value via JS and fire jQuery + native events.
+      await el.evaluate((e, v) => {
+        if (!(e instanceof HTMLInputElement)) return;
+        e.removeAttribute("readonly");
+        e.value = v;
+        e.setAttribute("readonly", "readonly");
+        const win = window as unknown as { jQuery?: (el: Element) => { trigger: (n: string) => void; datepicker?: (cmd: string, v: string) => void } };
+        if (win.jQuery) {
+          const $el = win.jQuery(e);
+          // For Bootstrap datepicker: setDate forces the picker's internal state to match.
+          $el.datepicker?.("setDate", v);
+          $el.trigger("change");
+          $el.trigger("input");
+        }
+      }, value);
+    } else {
+      await el.fill(value);
+    }
   }
   await el.dispatchEvent("change");
   await el.dispatchEvent("input");
@@ -140,56 +166,122 @@ export interface CaptchaCapture {
   imageBase64: string;
   width: number;
   height: number;
+  /**
+   * The puzzle-piece "block" canvas, if separately findable on this site.
+   * Used by the template-matching solver. May be omitted on fallback paths.
+   */
+  blockImageBase64?: string;
+  blockWidth?: number;
+  blockHeight?: number;
+  /** X-offset of the block canvas relative to the background canvas, if known. */
+  blockOffsetX?: number;
 }
 
 /**
- * Screenshot the CAPTCHA widget on the page.
+ * Screenshot the slider-CAPTCHA puzzle background.
  *
- * The MDAC site uses a slider CAPTCHA — typically a container div with a
- * background image and a draggable handle. We screenshot the entire CAPTCHA
- * container and return its dimensions so the frontend can render a
- * proportional slider.
+ * The MDAC site renders the CAPTCHA with two stacked canvases:
+ *   - `#captcha canvas` (no class) → the background photo with the notch
+ *   - `#captcha canvas.block`     → the puzzle piece itself
+ * We want just the background — the piece always starts at x=0 in the
+ * widget, so the drag distance is simply the gap's x-position.
+ *
+ * Falls back to the wider `[class*="captcha"]` widget shot if the canvas
+ * pair isn't found (selector drift).
  */
 export async function captureCaptcha(page: Page): Promise<CaptchaCapture> {
-  // Common slider CAPTCHA selectors — try multiple patterns
-  const captchaSelectors = [
+  // Preferred: the unstyled background canvas inside #captcha + block canvas
+  const bg = page.locator("#captcha canvas").nth(0);
+  const block = page.locator("#captcha canvas.block").first();
+  const bgCount = await bg.count().catch(() => 0);
+  if (bgCount > 0 && (await bg.isVisible().catch(() => false))) {
+    // Pull the canvas pixel data via JS rather than screenshot so we get the
+    // raw rendered content (no cursor/overlay interference). Falls back to
+    // page screenshot of the element if toDataURL fails.
+    const bgData = await bg
+      .evaluate((el) => {
+        const c = el as HTMLCanvasElement;
+        try {
+          return { dataUrl: c.toDataURL("image/png"), w: c.width, h: c.height };
+        } catch {
+          return null;
+        }
+      })
+      .catch(() => null);
+    let bgBuf: Buffer;
+    let bgW: number;
+    let bgH: number;
+    if (bgData?.dataUrl) {
+      bgBuf = Buffer.from(bgData.dataUrl.split(",")[1], "base64");
+      bgW = bgData.w;
+      bgH = bgData.h;
+    } else {
+      bgBuf = await bg.screenshot({ type: "png" });
+      const bx = await bg.boundingBox();
+      bgW = bx?.width ?? 271;
+      bgH = bx?.height ?? 155;
+    }
+
+    const out: CaptchaCapture = {
+      imageBase64: bgBuf.toString("base64"),
+      width: bgW,
+      height: bgH,
+    };
+
+    // Try to grab the block canvas + its x-offset relative to bg.
+    if ((await block.count().catch(() => 0)) > 0) {
+      const blockData = await block
+        .evaluate((el) => {
+          const c = el as HTMLCanvasElement;
+          try {
+            return { dataUrl: c.toDataURL("image/png"), w: c.width, h: c.height };
+          } catch {
+            return null;
+          }
+        })
+        .catch(() => null);
+      const bgBox = await bg.boundingBox();
+      const blockBox = await block.boundingBox();
+      if (blockData?.dataUrl) {
+        out.blockImageBase64 = Buffer.from(
+          blockData.dataUrl.split(",")[1],
+          "base64"
+        ).toString("base64");
+        out.blockWidth = blockData.w;
+        out.blockHeight = blockData.h;
+      }
+      if (bgBox && blockBox) {
+        out.blockOffsetX = Math.round(blockBox.x - bgBox.x);
+      }
+    }
+    return out;
+  }
+
+  // Fallback: any widget container
+  const fallbacks = [
     ".captcha-container",
     '[class*="captcha"]',
     '[class*="slider"]',
     '[class*="verify"]',
     ".blockPuzzle",
     "#captcha",
-    'canvas[class*="captcha"]',
-    '[id*="captcha"]',
   ];
-
-  let captchaEl = null;
-  for (const sel of captchaSelectors) {
+  for (const sel of fallbacks) {
     const loc = page.locator(sel).first();
     if ((await loc.count()) > 0 && (await loc.isVisible())) {
-      captchaEl = loc;
-      break;
+      const box = await loc.boundingBox();
+      const buf = await loc.screenshot({ type: "png" });
+      return {
+        imageBase64: buf.toString("base64"),
+        width: box?.width ?? 300,
+        height: box?.height ?? 200,
+      };
     }
   }
 
-  if (!captchaEl) {
-    // Fallback: screenshot the area around the submit button
-    console.warn("[mdac] No CAPTCHA element found — screenshotting bottom of form");
-    const screenshot = await page.screenshot({ type: "png", fullPage: false });
-    return {
-      imageBase64: screenshot.toString("base64"),
-      width: 1280,
-      height: 720,
-    };
-  }
-
-  const box = await captchaEl.boundingBox();
-  const screenshot = await captchaEl.screenshot({ type: "png" });
-  return {
-    imageBase64: screenshot.toString("base64"),
-    width: box?.width ?? 300,
-    height: box?.height ?? 200,
-  };
+  console.warn("[mdac] No CAPTCHA element found — full-page screenshot fallback");
+  const buf = await page.screenshot({ type: "png", fullPage: false });
+  return { imageBase64: buf.toString("base64"), width: 1280, height: 720 };
 }
 
 // ---- Phase 3: Solve CAPTCHA and submit ----
