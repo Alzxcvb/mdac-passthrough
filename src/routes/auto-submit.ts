@@ -57,6 +57,21 @@ router.get("/jobs/:id", (req: Request, res: Response) => {
   res.status(200).json({ success: true, ...status });
 });
 
+/**
+ * Full debug bundle: per-job event timeline, per-attempt captcha images,
+ * solver decisions, drag distances, and final-page screenshot+HTML on errors.
+ * Intended for postmortem after a real run — large payloads (~hundreds of KB).
+ * Job TTL is 24h.
+ */
+router.get("/jobs/:id/debug", (req: Request, res: Response) => {
+  const debug = jobManager.getDebug(req.params.id);
+  if (!debug) {
+    res.status(404).json({ success: false, error: "Job not found or expired" });
+    return;
+  }
+  res.status(200).json({ success: true, ...debug });
+});
+
 router.post("/jobs/:id/retrieve", async (req: Request, res: Response) => {
   const { pin } = req.body as { pin?: string };
   if (!pin || !pin.trim()) {

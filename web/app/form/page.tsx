@@ -120,7 +120,7 @@ function FormContent() {
   }, [formData]);
 
   const handleSubmitSuccess = useCallback(
-    (payload: { qrImageBase64?: string; pdfBase64?: string }) => {
+    (payload: { qrImageBase64?: string; pdfBase64?: string; jobId?: string }) => {
       sessionStorage.setItem(
         "mdac_confirmation",
         JSON.stringify({ form: formData, ...payload })

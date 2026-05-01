@@ -9,6 +9,7 @@
 
 import { chromium, type Browser, type Page } from "playwright";
 import { MdacFormData, SubmitResult, RetrieveResult } from "../types";
+import { DebugLogger } from "./debug";
 
 const MDAC_URL = "https://imigresen-online.imi.gov.my/mdac/main?registerMain";
 const TIMEOUT_MS = 60_000;
@@ -70,9 +71,17 @@ async function settleAfterChange(page: Page, ms = 500): Promise<void> {
  * Navigate to the MDAC form and fill every field. Leaves the page at the
  * point where the user needs to solve the CAPTCHA and click Submit.
  */
-export async function fillForm(page: Page, data: MdacFormData): Promise<void> {
-  console.log("[mdac] Navigating to MDAC form...");
+export async function fillForm(
+  page: Page,
+  data: MdacFormData,
+  logger?: DebugLogger
+): Promise<void> {
+  logger?.push("info", "fill.nav", "Navigating to MDAC form", { url: MDAC_URL });
   await page.goto(MDAC_URL, { waitUntil: "networkidle", timeout: TIMEOUT_MS });
+  logger?.push("info", "fill.nav.done", "MDAC form loaded", {
+    title: await page.title().catch(() => ""),
+    url: page.url(),
+  });
 
   // If there's a "New Registration" landing page, click through it
   const newRegBtn = page.locator(
@@ -80,11 +89,13 @@ export async function fillForm(page: Page, data: MdacFormData): Promise<void> {
     'button:has-text("Apply Now"), a:has-text("Apply Now")'
   );
   if ((await newRegBtn.count()) > 0) {
+    logger?.push("info", "fill.landing", "Clicking landing-page CTA");
     await newRegBtn.first().click();
     await page.waitForLoadState("networkidle");
   }
 
   // ---- Personal fields ----
+  logger?.push("info", "fill.personal", "Filling personal fields");
   await setField(page, "name", data.name);
   await setField(page, "passNo", data.passNo);
   await setField(page, "dob", data.dob);
@@ -99,6 +110,7 @@ export async function fillForm(page: Page, data: MdacFormData): Promise<void> {
   await setField(page, "mobile", data.mobile);
 
   // ---- Travel fields ----
+  logger?.push("info", "fill.travel", "Filling travel fields");
   await setField(page, "arrDt", data.arrDt);
   await setField(page, "depDt", data.depDt);
   await setField(page, "vesselNm", data.vesselNm);
@@ -106,6 +118,10 @@ export async function fillForm(page: Page, data: MdacFormData): Promise<void> {
   await setField(page, "embark", data.embark);
 
   // ---- Accommodation fields ----
+  logger?.push("info", "fill.accommodation", "Filling accommodation fields", {
+    state: data.accommodationState,
+    sCity: data.sCity,
+  });
   await setField(page, "accommodationStay", data.accommodationStay);
   await setField(page, "accommodationAddress1", data.accommodationAddress1);
   await setField(page, "accommodationAddress2", data.accommodationAddress2);
@@ -117,6 +133,7 @@ export async function fillForm(page: Page, data: MdacFormData): Promise<void> {
   const cityName = (data.sCity || "").toLowerCase();
   if (cityName) {
     let matched = false;
+    let optionsCount = 0;
     for (let attempt = 0; attempt < 30; attempt++) {
       const citySelect = await page.$('[name="accommodationCity"]');
       if (!citySelect) {
@@ -126,6 +143,7 @@ export async function fillForm(page: Page, data: MdacFormData): Promise<void> {
       const options = await citySelect.$$eval("option", (opts) =>
         opts.map((o) => ({ value: (o as unknown as { value: string }).value, text: o.textContent || "" }))
       );
+      optionsCount = options.length;
       if (options.length <= 1) {
         await page.waitForTimeout(500);
         continue;
@@ -134,11 +152,14 @@ export async function fillForm(page: Page, data: MdacFormData): Promise<void> {
       if (match) {
         await setField(page, "accommodationCity", match.value);
         matched = true;
+        logger?.push("info", "fill.city.matched", `Matched city "${data.sCity}" → ${match.value}`);
         break;
       }
       break; // options loaded but no match — stop polling
     }
     if (!matched) {
+      logger?.push("warn", "fill.city.unmatched",
+        `Could not match city "${data.sCity}" — options=${optionsCount}`);
       console.warn(`[mdac] Could not match city "${data.sCity}" — user may need to select manually`);
     }
   } else if (data.accommodationCity) {
@@ -156,7 +177,9 @@ export async function fillForm(page: Page, data: MdacFormData): Promise<void> {
       await cb.click();
     }
   }
+  logger?.push("info", "fill.checkboxes", `Checked ${count} declaration checkboxes`);
 
+  logger?.push("info", "fill.done", "Form filled — ready for CAPTCHA");
   console.log("[mdac] Form filled — ready for CAPTCHA");
 }
 
@@ -189,11 +212,15 @@ export interface CaptchaCapture {
  * Falls back to the wider `[class*="captcha"]` widget shot if the canvas
  * pair isn't found (selector drift).
  */
-export async function captureCaptcha(page: Page): Promise<CaptchaCapture> {
+export async function captureCaptcha(
+  page: Page,
+  logger?: DebugLogger
+): Promise<CaptchaCapture> {
   // Preferred: the unstyled background canvas inside #captcha + block canvas
   const bg = page.locator("#captcha canvas").nth(0);
   const block = page.locator("#captcha canvas.block").first();
   const bgCount = await bg.count().catch(() => 0);
+  logger?.push("info", "captcha.locate", `#captcha canvas count = ${bgCount}`);
   if (bgCount > 0 && (await bg.isVisible().catch(() => false))) {
     // Pull the canvas pixel data via JS rather than screenshot so we get the
     // raw rendered content (no cursor/overlay interference). Falls back to
@@ -254,6 +281,14 @@ export async function captureCaptcha(page: Page): Promise<CaptchaCapture> {
         out.blockOffsetX = Math.round(blockBox.x - bgBox.x);
       }
     }
+    logger?.push("info", "captcha.captured", "Captured #captcha canvas pair", {
+      bgW: out.width,
+      bgH: out.height,
+      blockW: out.blockWidth,
+      blockH: out.blockHeight,
+      blockOffsetX: out.blockOffsetX,
+      hasBlock: Boolean(out.blockImageBase64),
+    });
     return out;
   }
 
@@ -271,6 +306,10 @@ export async function captureCaptcha(page: Page): Promise<CaptchaCapture> {
     if ((await loc.count()) > 0 && (await loc.isVisible())) {
       const box = await loc.boundingBox();
       const buf = await loc.screenshot({ type: "png" });
+      logger?.push("warn", "captcha.fallback", `Used fallback selector: ${sel}`, {
+        w: box?.width,
+        h: box?.height,
+      });
       return {
         imageBase64: buf.toString("base64"),
         width: box?.width ?? 300,
@@ -279,6 +318,8 @@ export async function captureCaptcha(page: Page): Promise<CaptchaCapture> {
     }
   }
 
+  logger?.push("error", "captcha.notfound",
+    "No CAPTCHA element found — full-page screenshot fallback");
   console.warn("[mdac] No CAPTCHA element found — full-page screenshot fallback");
   const buf = await page.screenshot({ type: "png", fullPage: false });
   return { imageBase64: buf.toString("base64"), width: 1280, height: 720 };
@@ -422,7 +463,8 @@ const MDAC_BASE_URL = "https://imigresen-online.imi.gov.my/mdac/main";
 export async function retrieveQR(
   phoneCountryCode: string,
   phoneNumber: string,
-  pin: string
+  pin: string,
+  logger?: DebugLogger
 ): Promise<RetrieveResult> {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -433,6 +475,7 @@ export async function retrieveQR(
   page.setDefaultTimeout(TIMEOUT_MS);
 
   try {
+    logger?.push("info", "retrieve.nav", "Navigating to MDAC retrieve section");
     console.log("[mdac] Navigating to MDAC retrieve section...");
     await page.goto(MDAC_BASE_URL, { waitUntil: "networkidle", timeout: TIMEOUT_MS });
 
@@ -440,16 +483,25 @@ export async function retrieveQR(
       'a:has-text("Check Registration"), button:has-text("Check Registration"), ' +
       'a:has-text("View Status"), a:has-text("Retrieve"), button:has-text("Retrieve")'
     );
-    if ((await checkRegButton.count()) > 0) {
+    const checkBtnCount = await checkRegButton.count();
+    logger?.push("info", "retrieve.checkbtn", `Check Registration button count = ${checkBtnCount}`);
+    if (checkBtnCount > 0) {
       await checkRegButton.first().click();
       await page.waitForLoadState("networkidle");
+      logger?.push("info", "retrieve.checkbtn.clicked", "Navigated to retrieve form", {
+        url: page.url(),
+      });
     }
 
     // Phone country code
     const codeSelect = page.locator(
       'select[name*="countryCode"], select[name*="phoneCode"], select[name*="region"]'
     );
-    if ((await codeSelect.count()) > 0) {
+    const codeCount = await codeSelect.count();
+    logger?.push("info", "retrieve.code", `Country code select count = ${codeCount}`, {
+      tryingValue: phoneCountryCode,
+    });
+    if (codeCount > 0) {
       await codeSelect.selectOption({ value: phoneCountryCode }).catch(async () => {
         await codeSelect.selectOption({ label: phoneCountryCode });
       });
@@ -457,12 +509,14 @@ export async function retrieveQR(
 
     // Phone number
     await page.fill('input[type="tel"], input[name*="phone"], input[name*="mobile"]', phoneNumber);
+    logger?.push("info", "retrieve.phone", "Phone number filled");
 
     // PIN
     await page.fill(
       'input[name*="pin"], input[name*="PIN"], input[type="password"]',
       pin
     );
+    logger?.push("info", "retrieve.pin", "PIN filled", { pinLen: pin.length });
 
     // Submit retrieval
     const retrieveSubmit = page.locator(
@@ -470,6 +524,7 @@ export async function retrieveQR(
       'button:has-text("Submit"), button:has-text("Retrieve"), button:has-text("Check")'
     );
     await retrieveSubmit.first().click();
+    logger?.push("info", "retrieve.submitted", "Clicked retrieve submit");
 
     // Wait for result
     await page.waitForSelector(
@@ -481,13 +536,17 @@ export async function retrieveQR(
     const errorEl = page.locator('.alert-danger, .error, [class*="error"]');
     if ((await errorEl.count()) > 0) {
       const errorText = await errorEl.first().textContent();
-      return { success: false, error: errorText?.trim() || "Retrieval error" };
+      const text = errorText?.trim() || "Retrieval error";
+      logger?.push("error", "retrieve.error", `Site error after submit: ${text}`);
+      await logger?.capture("retrieve-error", page);
+      return { success: false, error: text };
     }
 
     // Try QR image
     const qrImg = page.locator('img[src*="qr"], .qr-code img, [class*="qr"] img').first();
     if ((await qrImg.count()) > 0) {
       const buf = await qrImg.screenshot({ type: "png" });
+      logger?.push("info", "retrieve.qr.image", "QR image screenshot captured");
       return { success: true, qrImageBase64: buf.toString("base64") };
     }
 
@@ -495,6 +554,7 @@ export async function retrieveQR(
     const qrCanvas = page.locator("canvas").first();
     if ((await qrCanvas.count()) > 0) {
       const buf = await qrCanvas.screenshot({ type: "png" });
+      logger?.push("info", "retrieve.qr.canvas", "QR canvas screenshot captured");
       return { success: true, qrImageBase64: buf.toString("base64") };
     }
 
@@ -510,6 +570,7 @@ export async function retrieveQR(
       for await (const chunk of stream) {
         chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
       }
+      logger?.push("info", "retrieve.qr.pdf", "PDF downloaded");
       return { success: true, pdfBase64: Buffer.concat(chunks).toString("base64") };
     }
 
@@ -517,12 +578,18 @@ export async function retrieveQR(
     const confirmSection = page.locator('.confirmation, [class*="confirmation"], main, #content').first();
     if ((await confirmSection.count()) > 0) {
       const buf = await confirmSection.screenshot({ type: "png" });
+      logger?.push("warn", "retrieve.qr.fallback", "Used confirmation-section fallback screenshot");
       return { success: true, qrImageBase64: buf.toString("base64") };
     }
 
+    logger?.push("error", "retrieve.notfound",
+      "Could not locate QR code or PDF — selectors may have drifted");
+    await logger?.capture("retrieve-notfound", page);
     return { success: false, error: "Could not locate QR code or PDF. Site layout may have changed." };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    logger?.push("error", "retrieve.exception", message);
+    await logger?.capture("retrieve-exception", page);
     console.error("[mdac] retrieveQR error:", message);
     return { success: false, error: `Retrieval failed: ${message}` };
   } finally {

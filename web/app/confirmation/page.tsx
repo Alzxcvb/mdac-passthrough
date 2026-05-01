@@ -4,10 +4,13 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormData } from "@/lib/types";
 
+const PASSTHROUGH_URL = process.env.NEXT_PUBLIC_PASSTHROUGH_URL || "";
+
 interface Stored {
   form: FormData;
   qrImageBase64?: string;
   pdfBase64?: string;
+  jobId?: string;
 }
 
 function ConfirmationContent() {
@@ -16,6 +19,7 @@ function ConfirmationContent() {
   const submitted = searchParams.get("submitted") === "true";
 
   const [data, setData] = useState<Stored | null>(null);
+  const [jobId, setJobId] = useState<string>("");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -24,11 +28,18 @@ function ConfirmationContent() {
       try {
         const parsed = JSON.parse(raw) as Stored;
         setData(parsed);
+        if (parsed.jobId) setJobId(parsed.jobId);
       } catch {
         setData(null);
       }
     }
+    if (!jobId) {
+      const lastId = sessionStorage.getItem("mdac_last_job_id");
+      if (lastId) setJobId(lastId);
+    }
     setHydrated(true);
+    // jobId intentionally omitted — we only want the initial hydration read.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!hydrated) {
@@ -138,6 +149,8 @@ function ConfirmationContent() {
           </div>
         )}
 
+        {jobId && <DebugBundlePanel jobId={jobId} />}
+
         <div className="text-center">
           <button
             onClick={() => router.push("/")}
@@ -148,6 +161,104 @@ function ConfirmationContent() {
         </div>
       </div>
     </main>
+  );
+}
+
+function DebugBundlePanel({ jobId }: { jobId: string }) {
+  const [busy, setBusy] = useState<"download" | "copy" | null>(null);
+  const [msg, setMsg] = useState<string>("");
+
+  async function fetchBundle(): Promise<unknown | null> {
+    try {
+      const r = await fetch(`${PASSTHROUGH_URL}/api/jobs/${jobId}/debug`);
+      if (!r.ok) {
+        setMsg(`Server returned ${r.status}`);
+        return null;
+      }
+      return (await r.json()) as unknown;
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Network error");
+      return null;
+    }
+  }
+
+  async function handleDownload() {
+    setBusy("download");
+    setMsg("");
+    const bundle = await fetchBundle();
+    if (!bundle) {
+      setBusy(null);
+      return;
+    }
+    try {
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `mdac-debug-${jobId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setMsg("Downloaded — send the .json file back for analysis.");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Download failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleCopy() {
+    setBusy("copy");
+    setMsg("");
+    const bundle = await fetchBundle();
+    if (!bundle) {
+      setBusy(null);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(bundle));
+      setMsg("Copied to clipboard.");
+    } catch {
+      setMsg("Couldn't copy — use Download instead.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <details className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+      <summary className="text-xs font-semibold text-gray-600 cursor-pointer select-none">
+        Debug bundle (for the developer)
+      </summary>
+      <div className="mt-3 space-y-2">
+        <p className="text-xs text-gray-500">
+          Job ID: <span className="font-mono break-all">{jobId}</span>
+        </p>
+        <p className="text-xs text-gray-500">
+          Timeline + screenshots of what the bot saw. Available for 24 hours.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={handleDownload}
+            disabled={busy !== null}
+            className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
+          >
+            {busy === "download" ? "Downloading..." : "Download .json"}
+          </button>
+          <button
+            onClick={handleCopy}
+            disabled={busy !== null}
+            className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
+          >
+            {busy === "copy" ? "Copying..." : "Copy JSON"}
+          </button>
+        </div>
+        {msg && <p className="text-xs text-gray-600">{msg}</p>}
+      </div>
+    </details>
   );
 }
 

@@ -5,12 +5,17 @@
  * polls GET /api/jobs/:id for status. State is in-memory only — if the
  * Railway container restarts mid-job, the job is lost and the user has to
  * resubmit. That's acceptable for MVP; we'll add Redis if traffic warrants.
+ *
+ * Each job also carries a DebugLogger that captures a timeline of events,
+ * per-attempt captcha images, solver decisions, drag distances, and
+ * page state on errors. Exposed via GET /api/jobs/:id/debug.
  */
 
 import { randomUUID } from "crypto";
 import { chromium, type Browser, type Page } from "playwright";
 import { fillForm, captureCaptcha, retrieveQR } from "./mdac";
 import { solveSliderCaptcha, type SolverResult } from "./captcha-solver";
+import { DebugLogger, type DebugBundle } from "./debug";
 import type { MdacFormData } from "../types";
 
 export type JobStatus =
@@ -40,7 +45,8 @@ export interface JobState {
 
 const MAX_CONCURRENT_JOBS = 3;
 const MAX_SOLVER_ATTEMPTS = 3;
-const JOB_TTL_MS = 30 * 60 * 1000; // 30 min — longer than relay because user has to receive PIN by email
+// 24h so we can pull the debug bundle the day after a real run.
+const JOB_TTL_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 const NAV_TIMEOUT_MS = 60_000;
 
@@ -48,6 +54,10 @@ interface JobInternal extends JobState {
   data: MdacFormData;
   /** Captured during submit so retrieve can reuse the phone for QR lookup. */
   phone?: { region: string; mobile: string };
+  /** Per-job debug logger for the auto-submit phase. */
+  logger: DebugLogger;
+  /** Separate logger for the retrieve phase (different page lifecycle). */
+  retrieveLogger?: DebugLogger;
 }
 
 class JobManager {
@@ -75,8 +85,31 @@ class JobManager {
   getStatus(jobId: string): JobState | null {
     const job = this.jobs.get(jobId);
     if (!job) return null;
-    const { data: _data, phone: _phone, ...publicState } = job;
+    const { data: _data, phone: _phone, logger: _l, retrieveLogger: _rl, ...publicState } = job;
     return publicState;
+  }
+
+  /** Public: full debug bundle for postmortem. */
+  getDebug(jobId: string): DebugBundle | null {
+    const job = this.jobs.get(jobId);
+    if (!job) return null;
+    const bundle: DebugBundle = {
+      jobId,
+      createdAt: job.createdAt,
+      status: job.status,
+      events: job.logger.events,
+      attempts: job.logger.attempts,
+      finalScreenshotBase64: job.logger.finalScreenshotBase64,
+      finalHtmlSnippet: job.logger.finalHtmlSnippet,
+    };
+    if (job.retrieveLogger) {
+      bundle.retrieve = {
+        events: job.retrieveLogger.events,
+        screenshotBase64: job.retrieveLogger.finalScreenshotBase64,
+        htmlSnippet: job.retrieveLogger.finalHtmlSnippet,
+      };
+    }
+    return bundle;
   }
 
   /**
@@ -90,6 +123,17 @@ class JobManager {
 
     const id = randomUUID();
     const now = Date.now();
+    const logger = new DebugLogger(id, "auto");
+    logger.push("info", "queue", "Job queued", {
+      hasName: Boolean(data.name),
+      hasPassNo: Boolean(data.passNo),
+      arrDt: data.arrDt,
+      region: data.region,
+      trvlMode: data.trvlMode,
+      embark: data.embark,
+      accommodationState: data.accommodationState,
+      sCity: data.sCity,
+    });
     const job: JobInternal = {
       id,
       status: "queued",
@@ -97,6 +141,7 @@ class JobManager {
       attempts: 0,
       data,
       phone: { region: data.region, mobile: data.mobile },
+      logger,
       createdAt: now,
       updatedAt: now,
     };
@@ -125,6 +170,9 @@ class JobManager {
       throw new Error("Server busy — try again in a minute.");
     }
 
+    job.retrieveLogger = new DebugLogger(jobId, "retrieve");
+    job.retrieveLogger.push("info", "queue", "Retrieve queued", { pinLen: pin.length });
+
     this.update(jobId, { status: "retrieving", message: "Retrieving QR from MDAC site..." });
     void this.runRetrieve(jobId, pin);
   }
@@ -134,36 +182,49 @@ class JobManager {
   private async runAutoSubmit(jobId: string): Promise<void> {
     this.inFlight++;
     let browser: Browser | null = null;
+    let page: Page | null = null;
+    const job = this.jobs.get(jobId);
+    if (!job) {
+      this.inFlight--;
+      return;
+    }
+    const log = job.logger;
 
     try {
-      const job = this.jobs.get(jobId);
-      if (!job) return;
-
       this.update(jobId, { status: "filling", message: "Opening MDAC site..." });
 
+      log.push("info", "browser.launch", "Launching headless Chromium");
       browser = await chromium.launch({ headless: true });
       const ctx = await browser.newContext({
         userAgent:
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       });
-      const page = await ctx.newPage();
+      page = await ctx.newPage();
       page.setDefaultTimeout(NAV_TIMEOUT_MS);
 
       this.update(jobId, { message: "Filling out form..." });
-      await fillForm(page, job.data);
+      await fillForm(page, job.data, log);
 
       // Try the auto-solver up to N times. After each fail, recapture the
       // CAPTCHA (the site usually serves a fresh image after a wrong drag).
       let solved = false;
       let lastError = "";
       for (let attempt = 1; attempt <= MAX_SOLVER_ATTEMPTS; attempt++) {
+        const a = log.attempt(attempt);
+        a.capturedAt = Date.now();
         this.update(jobId, {
           status: "solving",
           message: `Solving CAPTCHA (attempt ${attempt}/${MAX_SOLVER_ATTEMPTS})...`,
           attempts: attempt,
         });
 
-        const captcha = await captureCaptcha(page);
+        const captcha = await captureCaptcha(page, log);
+        a.captchaBgBase64 = captcha.imageBase64;
+        a.captchaBgWidth = captcha.width;
+        a.captchaBgHeight = captcha.height;
+        a.captchaBlockBase64 = captcha.blockImageBase64;
+        a.blockOffsetX = captcha.blockOffsetX;
+
         const captchaBuf = Buffer.from(captcha.imageBase64, "base64");
         const blockBuf = captcha.blockImageBase64
           ? Buffer.from(captcha.blockImageBase64, "base64")
@@ -173,7 +234,14 @@ class JobManager {
           block: blockBuf,
           blockOffsetX: captcha.blockOffsetX,
         });
+        a.solver = solver;
 
+        log.push(
+          "info",
+          "solver.result",
+          `attempt ${attempt} dragX=${solver.dragX} confidence=${solver.confidence.toFixed(2)} method=${solver.debug.method}`,
+          { solver: solver.debug }
+        );
         console.log(
           `[job ${jobId}] solver attempt ${attempt}: dragX=${solver.dragX} ` +
             `confidence=${solver.confidence.toFixed(2)} method=${solver.debug.method} ` +
@@ -182,11 +250,17 @@ class JobManager {
 
         if (solver.confidence < 0.2 && attempt === MAX_SOLVER_ATTEMPTS) {
           lastError = "CAPTCHA solver couldn't lock onto the puzzle (low confidence).";
+          log.push("error", "solver.lowconf",
+            `Final attempt has confidence ${solver.confidence.toFixed(2)} < 0.2 — giving up`);
           break;
         }
 
         this.update(jobId, { status: "submitting", message: "Dragging slider + submitting..." });
-        const submitResult = await dragAndSubmit(page, solver);
+        a.dragX = solver.dragX;
+        const submitResult = await dragAndSubmit(page, solver, log, attempt);
+        a.submitOk = submitResult.success;
+        a.submitError = submitResult.error;
+        a.retryable = submitResult.retryable;
 
         if (submitResult.success) {
           solved = true;
@@ -194,12 +268,18 @@ class JobManager {
         }
 
         lastError = submitResult.error || "Submit failed";
+        log.push(
+          submitResult.retryable ? "warn" : "error",
+          "submit.failed",
+          `attempt ${attempt} failed: ${lastError} (retryable=${submitResult.retryable ?? false})`
+        );
         // If MDAC says the CAPTCHA was wrong and gave a retry, loop
         if (!submitResult.retryable) break;
         await page.waitForTimeout(800);
       }
 
       if (!solved) {
+        await log.capture("auto-failed", page);
         this.update(jobId, {
           status: "failed",
           error: `Auto-submit failed after ${MAX_SOLVER_ATTEMPTS} attempts. Last error: ${lastError}`,
@@ -208,12 +288,15 @@ class JobManager {
         return;
       }
 
+      await log.capture("auto-submitted", page);
       this.update(jobId, {
         status: "submitted",
         message: "Submitted! Check your email for the PIN, then enter it below.",
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      log.push("error", "auto.exception", msg);
+      await log.capture("auto-exception", page);
       console.error(`[job ${jobId}] auto-submit error:`, msg);
       this.update(jobId, { status: "failed", error: msg, message: "Submit failed." });
     } finally {
@@ -232,7 +315,7 @@ class JobManager {
       }
 
       // retrieveQR launches its own browser and closes it.
-      const result = await retrieveQR(`+${job.phone.region}`, job.phone.mobile, pin);
+      const result = await retrieveQR(`+${job.phone.region}`, job.phone.mobile, pin, job.retrieveLogger);
 
       if (!result.success) {
         this.update(jobId, {
@@ -251,6 +334,8 @@ class JobManager {
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      const job = this.jobs.get(jobId);
+      job?.retrieveLogger?.push("error", "retrieve.exception", msg);
       console.error(`[job ${jobId}] retrieve error:`, msg);
       this.update(jobId, { status: "failed", error: msg, message: "Retrieve failed." });
     } finally {
@@ -281,7 +366,9 @@ class JobManager {
  */
 async function dragAndSubmit(
   page: Page,
-  solver: SolverResult
+  solver: SolverResult,
+  logger?: DebugLogger,
+  attempt?: number
 ): Promise<{ success: boolean; error?: string; retryable?: boolean }> {
   const handleSelectors = [
     '[class*="slider"] [class*="handle"]',
@@ -295,14 +382,20 @@ async function dragAndSubmit(
   ];
 
   let handle = null;
+  let matchedSelector = "";
   for (const sel of handleSelectors) {
     const loc = page.locator(sel).first();
     if ((await loc.count()) > 0 && (await loc.isVisible())) {
       handle = loc;
+      matchedSelector = sel;
       break;
     }
   }
-  if (!handle) return { success: false, error: "Slider handle not found", retryable: false };
+  if (!handle) {
+    logger?.push("error", "drag.no-handle", "Slider handle not found", { tried: handleSelectors });
+    return { success: false, error: "Slider handle not found", retryable: false };
+  }
+  logger?.push("info", "drag.handle", `Slider handle: ${matchedSelector}`, { attempt });
 
   const box = await handle.boundingBox();
   if (!box) return { success: false, error: "Handle bounding box unavailable", retryable: false };
@@ -331,6 +424,8 @@ async function dragAndSubmit(
   await page.mouse.move(target, startY);
   await page.mouse.up();
   await page.waitForTimeout(1200);
+  logger?.push("info", "drag.done",
+    `Drag complete: dragX=${solver.dragX} steps=${steps}`, { attempt, target, overshoot });
 
   const errorEl = page.locator('.alert-danger, .error, [class*="error"], [class*="alert-danger"]');
   if ((await errorEl.count()) > 0) {
@@ -338,6 +433,8 @@ async function dragAndSubmit(
     const lower = text.toLowerCase();
     const retryable =
       lower.includes("captcha") || lower.includes("verification") || lower.includes("slider");
+    logger?.push("warn", "drag.error",
+      `Error after drag: "${text}" (retryable=${retryable})`, { attempt });
     return { success: false, error: text, retryable };
   }
 
@@ -345,7 +442,9 @@ async function dragAndSubmit(
   const submitBtn = page.locator(
     'button[type="submit"], input[type="submit"], button:has-text("Submit"), button:has-text("Confirm"), button:has-text("Register")'
   );
-  if ((await submitBtn.count()) > 0) {
+  const submitCount = await submitBtn.count();
+  logger?.push("info", "submit.click", `Clicking submit button (count=${submitCount})`, { attempt });
+  if (submitCount > 0) {
     await submitBtn.first().click();
   }
 
@@ -362,9 +461,12 @@ async function dragAndSubmit(
     const lower = text.toLowerCase();
     const retryable =
       lower.includes("captcha") || lower.includes("verification") || lower.includes("slider");
+    logger?.push("warn", "submit.error",
+      `Error after submit click: "${text}" (retryable=${retryable})`, { attempt });
     return { success: false, error: text, retryable };
   }
 
+  logger?.push("info", "submit.ok", "No error indicators after submit click", { attempt });
   return { success: true };
 }
 
