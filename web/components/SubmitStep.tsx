@@ -43,6 +43,7 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
   const [cityCode, setCityCode] = useState<string>("");
   const [resolvingCity, setResolvingCity] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollFailRef = useRef(0);
 
   // Resolve the AJAX city code on mount (the official site populates city via state.)
   useEffect(() => {
@@ -79,10 +80,12 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
 
   function startPolling(id: string) {
     if (pollRef.current) clearInterval(pollRef.current);
+    pollFailRef.current = 0;
     pollRef.current = setInterval(async () => {
       try {
         const r = await fetch(`${PASSTHROUGH_URL}/api/jobs/${id}`);
         const json = (await r.json()) as JobStatus & { success?: boolean };
+        pollFailRef.current = 0;
         if (!r.ok) {
           setError(json.error || "Lost contact with the server.");
           setPhase("failed");
@@ -104,8 +107,13 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
           if (pollRef.current) clearInterval(pollRef.current);
         }
       } catch (err) {
-        // transient — keep polling, but show a hint after a few in a row
+        pollFailRef.current += 1;
         console.warn("[poll] error", err);
+        if (pollFailRef.current >= 8) {
+          setError("Lost connection to the server. Check your internet connection and try again.");
+          setPhase("failed");
+          if (pollRef.current) clearInterval(pollRef.current);
+        }
       }
     }, 1500);
   }
@@ -305,6 +313,9 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
           </div>
         )}
 
+        {jobId && (phase === "submitting" || phase === "retrieving") && (
+          <p className="text-xs text-gray-400 font-mono break-all">Job: {jobId}</p>
+        )}
         {jobId && (phase === "submitted" || phase === "failed" || phase === "done") && (
           <DebugBundlePanel jobId={jobId} />
         )}

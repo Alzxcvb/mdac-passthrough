@@ -479,18 +479,27 @@ export async function retrieveQR(
     console.log("[mdac] Navigating to MDAC retrieve section...");
     await page.goto(MDAC_BASE_URL, { waitUntil: "networkidle", timeout: TIMEOUT_MS });
 
+    logger?.push("info", "retrieve.nav.done", "MDAC main page loaded", {
+      url: page.url(), title: await page.title().catch(() => ""),
+    });
+
     const checkRegButton = page.locator(
       'a:has-text("Check Registration"), button:has-text("Check Registration"), ' +
       'a:has-text("View Status"), a:has-text("Retrieve"), button:has-text("Retrieve")'
     );
     const checkBtnCount = await checkRegButton.count();
-    logger?.push("info", "retrieve.checkbtn", `Check Registration button count = ${checkBtnCount}`);
+    logger?.push("info", "retrieve.checkbtn", `Check Registration button count = ${checkBtnCount}`, {
+      url: page.url(),
+    });
     if (checkBtnCount > 0) {
       await checkRegButton.first().click();
       await page.waitForLoadState("networkidle");
       logger?.push("info", "retrieve.checkbtn.clicked", "Navigated to retrieve form", {
-        url: page.url(),
+        url: page.url(), title: await page.title().catch(() => ""),
       });
+    } else {
+      logger?.push("warn", "retrieve.checkbtn.missing",
+        "No Check Registration button found — proceeding on current page", { url: page.url() });
     }
 
     // Phone country code
@@ -498,39 +507,83 @@ export async function retrieveQR(
       'select[name*="countryCode"], select[name*="phoneCode"], select[name*="region"]'
     );
     const codeCount = await codeSelect.count();
-    logger?.push("info", "retrieve.code", `Country code select count = ${codeCount}`, {
-      tryingValue: phoneCountryCode,
-    });
     if (codeCount > 0) {
-      await codeSelect.selectOption({ value: phoneCountryCode }).catch(async () => {
-        await codeSelect.selectOption({ label: phoneCountryCode });
+      const availableOptions = await codeSelect.first().evaluate((el) => {
+        const s = el as HTMLSelectElement;
+        return Array.from(s.options).slice(0, 10).map((o) => ({ value: o.value, text: o.text }));
+      }).catch(() => []);
+      logger?.push("info", "retrieve.code", `Country code select count = ${codeCount}`, {
+        tryingValue: phoneCountryCode,
+        first10Options: availableOptions,
       });
+      await codeSelect.selectOption({ value: phoneCountryCode }).catch(async () => {
+        await codeSelect.selectOption({ label: phoneCountryCode }).catch(() => {
+          logger?.push("warn", "retrieve.code.failed",
+            `Could not select country code "${phoneCountryCode}" — proceeding anyway`);
+        });
+      });
+    } else {
+      logger?.push("warn", "retrieve.code.missing",
+        "No country code select found on page", { url: page.url() });
     }
 
-    // Phone number
-    await page.fill('input[type="tel"], input[name*="phone"], input[name*="mobile"]', phoneNumber);
-    logger?.push("info", "retrieve.phone", "Phone number filled");
+    // Phone number — try selectors in order and log which matched
+    const phoneSelectors = ['input[type="tel"]', 'input[name*="phone"]', 'input[name*="mobile"]'];
+    let phoneMatched = "";
+    for (const sel of phoneSelectors) {
+      if ((await page.locator(sel).count()) > 0) { phoneMatched = sel; break; }
+    }
+    if (phoneMatched) {
+      await page.fill(phoneMatched, phoneNumber);
+      logger?.push("info", "retrieve.phone", "Phone number filled", { selector: phoneMatched });
+    } else {
+      logger?.push("warn", "retrieve.phone.missing",
+        "No phone input found", { tried: phoneSelectors, url: page.url() });
+    }
 
     // PIN
-    await page.fill(
-      'input[name*="pin"], input[name*="PIN"], input[type="password"]',
-      pin
-    );
-    logger?.push("info", "retrieve.pin", "PIN filled", { pinLen: pin.length });
+    const pinSelectors = ['input[name*="pin"]', 'input[name*="PIN"]', 'input[type="password"]'];
+    let pinMatched = "";
+    for (const sel of pinSelectors) {
+      if ((await page.locator(sel).count()) > 0) { pinMatched = sel; break; }
+    }
+    if (pinMatched) {
+      await page.fill(pinMatched, pin);
+      logger?.push("info", "retrieve.pin", "PIN filled", { pinLen: pin.length, selector: pinMatched });
+    } else {
+      logger?.push("warn", "retrieve.pin.missing",
+        "No PIN input found", { tried: pinSelectors, url: page.url() });
+    }
 
     // Submit retrieval
     const retrieveSubmit = page.locator(
       'button[type="submit"], input[type="submit"], ' +
       'button:has-text("Submit"), button:has-text("Retrieve"), button:has-text("Check")'
     );
+    const retrieveSubmitCount = await retrieveSubmit.count();
+    logger?.push("info", "retrieve.submit-btn", `Retrieve submit button count = ${retrieveSubmitCount}`, {
+      url: page.url(),
+    });
+    if (retrieveSubmitCount === 0) {
+      logger?.push("error", "retrieve.submit-btn.missing", "No submit button found on retrieve page");
+      await logger?.capture("retrieve-no-submit", page);
+      return { success: false, error: "No submit button found on the retrieval page. Selectors may have drifted." };
+    }
     await retrieveSubmit.first().click();
     logger?.push("info", "retrieve.submitted", "Clicked retrieve submit");
 
     // Wait for result
-    await page.waitForSelector(
+    const qrFound = await page.waitForSelector(
       'img[src*="qr"], canvas, .qr-code, [class*="qr"], a[href*=".pdf"], iframe',
       { timeout: 30_000 }
     ).catch(() => null);
+
+    logger?.push(qrFound ? "info" : "warn", "retrieve.wait", qrFound ? "QR selector found" : "QR selector timed out — checking page state", {
+      url: page.url(), title: await page.title().catch(() => ""),
+    });
+    if (!qrFound) {
+      await logger?.capture("retrieve-wait-timeout", page);
+    }
 
     // Check for error
     const errorEl = page.locator('.alert-danger, .error, [class*="error"]');

@@ -448,12 +448,25 @@ async function dragAndSubmit(
     await submitBtn.first().click();
   }
 
-  await page
+  const successEl = await page
     .waitForSelector(
       '.success, .alert-success, [class*="success"], [class*="confirmation"], h2:has-text("Thank"), h2:has-text("Success"), p:has-text("PIN")',
       { timeout: 30_000 }
     )
     .catch(() => null);
+
+  const pageUrl = page.url();
+  const pageTitle = await page.title().catch(() => "");
+  if (successEl) {
+    logger?.push("info", "submit.success-selector", "Success selector found on page", {
+      attempt, url: pageUrl, title: pageTitle,
+    });
+  } else {
+    logger?.push("warn", "submit.no-success-selector",
+      "No success selector matched after 30s — checking for errors", {
+        attempt, url: pageUrl, title: pageTitle,
+      });
+  }
 
   const errorAfterSubmit = page.locator('.alert-danger, .error, [class*="error"]');
   if ((await errorAfterSubmit.count()) > 0) {
@@ -462,11 +475,13 @@ async function dragAndSubmit(
     const retryable =
       lower.includes("captcha") || lower.includes("verification") || lower.includes("slider");
     logger?.push("warn", "submit.error",
-      `Error after submit click: "${text}" (retryable=${retryable})`, { attempt });
+      `Error after submit click: "${text}" (retryable=${retryable})`, { attempt, url: pageUrl });
     return { success: false, error: text, retryable };
   }
 
-  logger?.push("info", "submit.ok", "No error indicators after submit click", { attempt });
+  logger?.push("info", "submit.ok", "No error indicators after submit click — assuming success", {
+    attempt, url: pageUrl, title: pageTitle,
+  });
   return { success: true };
 }
 
