@@ -4,6 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { type FormData } from "@/lib/types";
 import { mapFormToMdac, STATE_TO_CODE } from "@/lib/mdac-codes";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import {
+  getSessionId,
+  linkJobId,
+  track as telTrack,
+  trackError as telTrackError,
+} from "@/lib/telemetry";
 
 const PASSTHROUGH_URL = process.env.NEXT_PUBLIC_PASSTHROUGH_URL || "";
 
@@ -81,16 +87,27 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
   function startPolling(id: string) {
     if (pollRef.current) clearInterval(pollRef.current);
     pollFailRef.current = 0;
+    let lastStatus = "";
     pollRef.current = setInterval(async () => {
       try {
         const r = await fetch(`${PASSTHROUGH_URL}/api/jobs/${id}`);
         const json = (await r.json()) as JobStatus & { success?: boolean };
         pollFailRef.current = 0;
         if (!r.ok) {
+          telTrackError("poll_http_error", "submit", { jobId: id, status: r.status, error: json.error });
           setError(json.error || "Lost contact with the server.");
           setPhase("failed");
           if (pollRef.current) clearInterval(pollRef.current);
           return;
+        }
+        if (json.status !== lastStatus) {
+          telTrack("job_status_change", "submit", {
+            jobId: id,
+            from: lastStatus,
+            to: json.status,
+            attempts: json.attempts,
+          });
+          lastStatus = json.status;
         }
         setStatusMessage(json.message || "");
         if (json.status === "submitted") {
@@ -100,8 +117,19 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
           setPhase("done");
           if (pollRef.current) clearInterval(pollRef.current);
           trackEvent(ANALYTICS_EVENTS.qrGenerated, { transport: data.modeOfTransport || "unknown" });
+          telTrack("qr_generated", "submit", {
+            jobId: id,
+            transport: data.modeOfTransport || "unknown",
+            hasQr: Boolean(json.qrImageBase64),
+            hasPdf: Boolean(json.pdfBase64),
+          });
           onSuccess({ qrImageBase64: json.qrImageBase64, pdfBase64: json.pdfBase64, jobId: id });
         } else if (json.status === "failed") {
+          telTrackError("job_failed", "submit", {
+            jobId: id,
+            error: json.error,
+            attempts: json.attempts,
+          });
           setError(json.error || "Submission failed.");
           setPhase("failed");
           if (pollRef.current) clearInterval(pollRef.current);
@@ -109,6 +137,12 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
       } catch (err) {
         pollFailRef.current += 1;
         console.warn("[poll] error", err);
+        const message = err instanceof Error ? err.message : String(err);
+        telTrackError("poll_exception", "submit", {
+          jobId: id,
+          message,
+          consecutiveFails: pollFailRef.current,
+        });
         if (pollFailRef.current >= 8) {
           setError("Lost connection to the server. Check your internet connection and try again.");
           setPhase("failed");
@@ -119,26 +153,39 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
   }
 
   async function handleSubmit() {
-    if (!agreed || !agreedNotAffiliated) return;
+    if (!agreed || !agreedNotAffiliated) {
+      telTrackError("submit_blocked_unchecked", "submit", { agreed, agreedNotAffiliated });
+      return;
+    }
     setError("");
     setPhase("submitting");
     setStatusMessage("Sending your data to the server...");
     trackEvent(ANALYTICS_EVENTS.submitOpenedMdac, { method: "passthrough" });
+    telTrack("submit_clicked", "submit", {
+      transport: data.modeOfTransport || "unknown",
+      cityCodeResolved: Boolean(cityCode),
+    });
 
     try {
       const payload = mapFormToMdac(data, cityCode);
+      const sessionId = getSessionId();
       const r = await fetch(`${PASSTHROUGH_URL}/api/auto-submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, sessionId }),
       });
       const json = (await r.json()) as { success: boolean; jobId?: string; error?: string };
       if (!r.ok || !json.success || !json.jobId) {
+        telTrackError("submit_request_failed", "submit", {
+          status: r.status,
+          error: json.error,
+        });
         setError(json.error || `Server returned ${r.status}`);
         setPhase("failed");
         return;
       }
       setJobId(json.jobId);
+      linkJobId(json.jobId);
       try {
         sessionStorage.setItem("mdac_last_job_id", json.jobId);
       } catch {
@@ -146,17 +193,23 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
       }
       startPolling(json.jobId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      const message = err instanceof Error ? err.message : "Network error";
+      telTrackError("submit_exception", "submit", { message });
+      setError(message);
       setPhase("failed");
     }
   }
 
   async function handleRetrieve() {
-    if (!pin.trim()) return;
+    if (!pin.trim()) {
+      telTrackError("retrieve_blocked_no_pin", "submit", { jobId });
+      return;
+    }
     setError("");
     setPhase("retrieving");
     setStatusMessage("Fetching your QR code from the official MDAC site...");
     trackEvent(ANALYTICS_EVENTS.userConfirmedSubmitted, { method: "passthrough" });
+    telTrack("retrieve_clicked", "submit", { jobId, pinLength: pin.trim().length });
 
     try {
       const r = await fetch(`${PASSTHROUGH_URL}/api/jobs/${jobId}/retrieve`, {
@@ -166,13 +219,20 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
       });
       const json = (await r.json()) as { success: boolean; error?: string };
       if (!r.ok || !json.success) {
+        telTrackError("retrieve_request_failed", "submit", {
+          jobId,
+          status: r.status,
+          error: json.error,
+        });
         setError(json.error || `Server returned ${r.status}`);
         setPhase("failed");
         return;
       }
       startPolling(jobId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      const message = err instanceof Error ? err.message : "Network error";
+      telTrackError("retrieve_exception", "submit", { jobId, message });
+      setError(message);
       setPhase("failed");
     }
   }
@@ -316,9 +376,7 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
         {jobId && (phase === "submitting" || phase === "retrieving") && (
           <p className="text-xs text-gray-400 font-mono break-all">Job: {jobId}</p>
         )}
-        {jobId && (phase === "submitted" || phase === "failed" || phase === "done") && (
-          <DebugBundlePanel jobId={jobId} />
-        )}
+        <DebugBundlePanel jobId={jobId} phase={phase} />
       </div>
 
       <div className="flex gap-3">
@@ -381,13 +439,30 @@ export default function SubmitStep({ data, onSuccess, onBack }: Props) {
 }
 
 /**
- * Debug-bundle utility shown after a job lands in submitted/failed/done.
- * Pulls GET /api/jobs/:id/debug and offers Download (file) + Copy (clipboard).
- * Used to ship debug data back when something goes wrong on a real run.
+ * Debug-bundle utility shown on every phase past intro. Always exposes
+ * the Session ID (so a tester who never reaches submit can still report
+ * a useful identifier). Once a job exists, also exposes the per-job debug
+ * bundle download.
+ *
+ * Two flavours of evidence:
+ *  - Session ID (always available): /api/sessions/:id reconstructs the
+ *    full client-side journey — clicks, validation errors, network calls,
+ *    JS exceptions.
+ *  - Job ID (only after submit): /api/jobs/:id/debug returns the headless
+ *    Playwright trace — screenshots, captcha images, solver decisions.
  */
-function DebugBundlePanel({ jobId }: { jobId: string }) {
-  const [busy, setBusy] = useState<"download" | "copy" | null>(null);
+function DebugBundlePanel({ jobId, phase }: { jobId: string; phase: Phase }) {
+  const [busy, setBusy] = useState<"download" | "copy" | "session" | null>(null);
   const [msg, setMsg] = useState<string>("");
+  const [sessionId, setSessionIdLocal] = useState<string>("");
+
+  useEffect(() => {
+    setSessionIdLocal(getSessionId());
+  }, []);
+
+  // Don't render at all on the intro screen — too noisy. Show as soon as the
+  // user clicks Submit so it's visible if anything goes wrong from then on.
+  if (phase === "intro") return null;
 
   async function fetchBundle(): Promise<unknown | null> {
     try {
@@ -404,6 +479,7 @@ function DebugBundlePanel({ jobId }: { jobId: string }) {
   }
 
   async function handleDownload() {
+    if (!jobId) return;
     setBusy("download");
     setMsg("");
     const bundle = await fetchBundle();
@@ -432,6 +508,7 @@ function DebugBundlePanel({ jobId }: { jobId: string }) {
   }
 
   async function handleCopy() {
+    if (!jobId) return;
     setBusy("copy");
     setMsg("");
     const bundle = await fetchBundle();
@@ -449,35 +526,67 @@ function DebugBundlePanel({ jobId }: { jobId: string }) {
     }
   }
 
+  async function handleCopySession() {
+    if (!sessionId) return;
+    setBusy("session");
+    setMsg("");
+    const id = jobId ? `session=${sessionId} job=${jobId}` : `session=${sessionId}`;
+    try {
+      await navigator.clipboard.writeText(id);
+      setMsg("Copied — paste this when reporting an issue.");
+    } catch {
+      setMsg(`Couldn't copy — your session id is: ${sessionId}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
-    <details className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+    <details className="rounded-xl border border-gray-200 bg-gray-50 p-3" open={phase === "failed"}>
       <summary className="text-xs font-semibold text-gray-600 cursor-pointer select-none">
-        Debug bundle (for the developer)
+        Debug info (for the developer)
       </summary>
-      <div className="mt-3 space-y-2">
-        <p className="text-xs text-gray-500">
-          Job ID: <span className="font-mono break-all">{jobId}</span>
-        </p>
-        <p className="text-xs text-gray-500">
-          If something went wrong, download the debug file (timeline + screenshots
-          of what the bot saw) and send it back. Available for 24 hours.
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={handleDownload}
-            disabled={busy !== null}
-            className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
-          >
-            {busy === "download" ? "Downloading..." : "Download .json"}
-          </button>
-          <button
-            onClick={handleCopy}
-            disabled={busy !== null}
-            className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
-          >
-            {busy === "copy" ? "Copying..." : "Copy JSON"}
-          </button>
+      <div className="mt-3 space-y-3">
+        <div className="space-y-1">
+          <p className="text-xs text-gray-500">
+            Session ID:{" "}
+            <span className="font-mono break-all">{sessionId || "—"}</span>
+          </p>
+          {jobId && (
+            <p className="text-xs text-gray-500">
+              Job ID: <span className="font-mono break-all">{jobId}</span>
+            </p>
+          )}
         </div>
+        <p className="text-xs text-gray-500">
+          If something went wrong, copy the session ID (or download the JSON
+          file below) and send it back. Available for at least 24 hours.
+        </p>
+        <button
+          onClick={handleCopySession}
+          disabled={busy !== null || !sessionId}
+          className="w-full text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
+        >
+          {busy === "session" ? "Copying..." : "Copy session ID"}
+        </button>
+        {jobId && (
+          <div className="flex gap-2">
+            <button
+              onClick={handleDownload}
+              disabled={busy !== null}
+              className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
+            >
+              {busy === "download" ? "Downloading..." : "Download .json"}
+            </button>
+            <button
+              onClick={handleCopy}
+              disabled={busy !== null}
+              className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
+            >
+              {busy === "copy" ? "Copying..." : "Copy JSON"}
+            </button>
+          </div>
+        )}
         {msg && <p className="text-xs text-gray-600">{msg}</p>}
       </div>
     </details>

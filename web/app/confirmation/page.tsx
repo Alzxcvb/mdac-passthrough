@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormData } from "@/lib/types";
+import { getSessionId } from "@/lib/telemetry";
 
 const PASSTHROUGH_URL = process.env.NEXT_PUBLIC_PASSTHROUGH_URL || "";
 
@@ -149,7 +150,7 @@ function ConfirmationContent() {
           </div>
         )}
 
-        {jobId && <DebugBundlePanel jobId={jobId} />}
+        <DebugBundlePanel jobId={jobId} />
 
         <div className="text-center">
           <button
@@ -164,9 +165,20 @@ function ConfirmationContent() {
   );
 }
 
+/**
+ * Confirmation-page variant of the debug panel: always exposes the session
+ * ID, plus the per-job debug bundle when a jobId is recoverable from
+ * sessionStorage. Mirrors the SubmitStep panel intentionally — kept inline
+ * here so this page can be served independently.
+ */
 function DebugBundlePanel({ jobId }: { jobId: string }) {
-  const [busy, setBusy] = useState<"download" | "copy" | null>(null);
+  const [busy, setBusy] = useState<"download" | "copy" | "session" | null>(null);
   const [msg, setMsg] = useState<string>("");
+  const [sessionId, setSessionIdLocal] = useState<string>("");
+
+  useEffect(() => {
+    setSessionIdLocal(getSessionId());
+  }, []);
 
   async function fetchBundle(): Promise<unknown | null> {
     try {
@@ -183,6 +195,7 @@ function DebugBundlePanel({ jobId }: { jobId: string }) {
   }
 
   async function handleDownload() {
+    if (!jobId) return;
     setBusy("download");
     setMsg("");
     const bundle = await fetchBundle();
@@ -211,6 +224,7 @@ function DebugBundlePanel({ jobId }: { jobId: string }) {
   }
 
   async function handleCopy() {
+    if (!jobId) return;
     setBusy("copy");
     setMsg("");
     const bundle = await fetchBundle();
@@ -228,34 +242,63 @@ function DebugBundlePanel({ jobId }: { jobId: string }) {
     }
   }
 
+  async function handleCopySession() {
+    if (!sessionId) return;
+    setBusy("session");
+    setMsg("");
+    const id = jobId ? `session=${sessionId} job=${jobId}` : `session=${sessionId}`;
+    try {
+      await navigator.clipboard.writeText(id);
+      setMsg("Copied — paste this when reporting an issue.");
+    } catch {
+      setMsg(`Couldn't copy — your session id is: ${sessionId}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <details className="rounded-xl border border-gray-200 bg-gray-50 p-3">
       <summary className="text-xs font-semibold text-gray-600 cursor-pointer select-none">
-        Debug bundle (for the developer)
+        Debug info (for the developer)
       </summary>
-      <div className="mt-3 space-y-2">
-        <p className="text-xs text-gray-500">
-          Job ID: <span className="font-mono break-all">{jobId}</span>
-        </p>
-        <p className="text-xs text-gray-500">
-          Timeline + screenshots of what the bot saw. Available for 24 hours.
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={handleDownload}
-            disabled={busy !== null}
-            className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
-          >
-            {busy === "download" ? "Downloading..." : "Download .json"}
-          </button>
-          <button
-            onClick={handleCopy}
-            disabled={busy !== null}
-            className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
-          >
-            {busy === "copy" ? "Copying..." : "Copy JSON"}
-          </button>
+      <div className="mt-3 space-y-3">
+        <div className="space-y-1">
+          <p className="text-xs text-gray-500">
+            Session ID:{" "}
+            <span className="font-mono break-all">{sessionId || "—"}</span>
+          </p>
+          {jobId && (
+            <p className="text-xs text-gray-500">
+              Job ID: <span className="font-mono break-all">{jobId}</span>
+            </p>
+          )}
         </div>
+        <button
+          onClick={handleCopySession}
+          disabled={busy !== null || !sessionId}
+          className="w-full text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
+        >
+          {busy === "session" ? "Copying..." : "Copy session ID"}
+        </button>
+        {jobId && (
+          <div className="flex gap-2">
+            <button
+              onClick={handleDownload}
+              disabled={busy !== null}
+              className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
+            >
+              {busy === "download" ? "Downloading..." : "Download .json"}
+            </button>
+            <button
+              onClick={handleCopy}
+              disabled={busy !== null}
+              className="flex-1 text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded-lg active:scale-95 disabled:opacity-50"
+            >
+              {busy === "copy" ? "Copying..." : "Copy JSON"}
+            </button>
+          </div>
+        )}
         {msg && <p className="text-xs text-gray-600">{msg}</p>}
       </div>
     </details>

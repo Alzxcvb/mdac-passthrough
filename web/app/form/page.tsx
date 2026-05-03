@@ -18,6 +18,7 @@ import {
   loadStep,
 } from "@/lib/storage";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { track as telTrack, trackStep } from "@/lib/telemetry";
 
 function FormContent() {
   const router = useRouter();
@@ -86,6 +87,7 @@ function FormContent() {
         transport: formData.modeOfTransport || "unknown",
       });
     }
+    trackStep("form", step, step + 1);
     setStep((s) => {
       const next = s + 1;
       saveStep(next);
@@ -95,13 +97,14 @@ function FormContent() {
   }, [formData.modeOfTransport, mode, step]);
 
   const handleBack = useCallback(() => {
+    trackStep("form", step, step - 1);
     setStep((s) => {
       const next = s - 1;
       saveStep(next);
       return next;
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  }, [step]);
 
   // Called when ReviewStep submits — save profile, advance to submit step.
   // Draft stays in localStorage until actual submission succeeds so that
@@ -111,6 +114,11 @@ function FormContent() {
       save_profile: formData.saveProfile,
       transport: formData.modeOfTransport || "unknown",
     });
+    telTrack("review_submit", "form/step3", {
+      saveProfile: formData.saveProfile,
+      transport: formData.modeOfTransport || "unknown",
+    });
+    trackStep("form", 3, 4);
     if (formData.saveProfile) {
       saveProfile(formData);
     }
