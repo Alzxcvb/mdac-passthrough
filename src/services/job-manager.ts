@@ -41,6 +41,8 @@ export interface JobState {
   /** Internal: when the job was last touched. */
   updatedAt: number;
   createdAt: number;
+  /** Frontend telemetry session that originated this job, if known. */
+  sessionId?: string;
 }
 
 const MAX_CONCURRENT_JOBS = 3;
@@ -90,10 +92,10 @@ class JobManager {
   }
 
   /** Public: full debug bundle for postmortem. */
-  getDebug(jobId: string): DebugBundle | null {
+  getDebug(jobId: string): (DebugBundle & { sessionId?: string }) | null {
     const job = this.jobs.get(jobId);
     if (!job) return null;
-    const bundle: DebugBundle = {
+    const bundle: DebugBundle & { sessionId?: string } = {
       jobId,
       createdAt: job.createdAt,
       status: job.status,
@@ -102,6 +104,7 @@ class JobManager {
       finalScreenshotBase64: job.logger.finalScreenshotBase64,
       finalHtmlSnippet: job.logger.finalHtmlSnippet,
     };
+    if (job.sessionId) bundle.sessionId = job.sessionId;
     if (job.retrieveLogger) {
       bundle.retrieve = {
         events: job.retrieveLogger.events,
@@ -114,9 +117,10 @@ class JobManager {
 
   /**
    * Kick off an auto-submit job. Returns the jobId immediately; work happens
-   * in the background.
+   * in the background. `sessionId` is the optional frontend telemetry session
+   * that originated the request — stored so debug bundles can be correlated.
    */
-  async startAutoSubmit(data: MdacFormData): Promise<string> {
+  async startAutoSubmit(data: MdacFormData, sessionId?: string): Promise<string> {
     if (this.inFlight >= MAX_CONCURRENT_JOBS) {
       throw new Error("Server busy — too many concurrent submissions. Please wait a minute and retry.");
     }
@@ -133,6 +137,7 @@ class JobManager {
       embark: data.embark,
       accommodationState: data.accommodationState,
       sCity: data.sCity,
+      sessionId,
     });
     const job: JobInternal = {
       id,
@@ -144,6 +149,7 @@ class JobManager {
       logger,
       createdAt: now,
       updatedAt: now,
+      sessionId,
     };
     this.jobs.set(id, job);
 

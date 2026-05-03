@@ -10,12 +10,16 @@
 
 import { Router, Request, Response } from "express";
 import { jobManager } from "../services/job-manager";
+import { telemetryStore } from "../services/telemetry-store";
 import type { MdacFormData } from "../types";
 
 const router = Router();
 
 router.post("/auto-submit", async (req: Request, res: Response) => {
-  const data = req.body as MdacFormData;
+  const body = req.body as MdacFormData & { sessionId?: string };
+  const sessionId = typeof body.sessionId === "string" ? body.sessionId : undefined;
+  const data: MdacFormData = { ...body };
+  delete (data as { sessionId?: string }).sessionId;
 
   const required: (keyof MdacFormData)[] = [
     "name",
@@ -35,8 +39,34 @@ router.post("/auto-submit", async (req: Request, res: Response) => {
   }
 
   try {
-    const jobId = await jobManager.startAutoSubmit(data);
-    console.log(`[auto-submit] queued ${jobId} for ${data.name}`);
+    const jobId = await jobManager.startAutoSubmit(data, sessionId);
+    console.log(
+      `[auto-submit] queued ${jobId} for ${data.name}` +
+        (sessionId ? ` (session ${sessionId.slice(0, 8)})` : "")
+    );
+    if (sessionId) {
+      // Link the job back to the session in the telemetry store so
+      // GET /api/sessions/by-job/:id works and a server-side note appears
+      // in the session timeline even if the client never POSTs after submit.
+      try {
+        telemetryStore.append(
+          sessionId,
+          [
+            {
+              ts: Date.now(),
+              name: "server.job_created",
+              surface: "submit",
+              data: { jobId },
+            },
+          ],
+          undefined,
+          jobId
+        );
+      } catch (e) {
+        const m = e instanceof Error ? e.message : String(e);
+        console.warn("[auto-submit] telemetry link failed:", m);
+      }
+    }
     res.status(202).json({ success: true, jobId });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

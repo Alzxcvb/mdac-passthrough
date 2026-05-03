@@ -4,8 +4,10 @@ import submitRouter from "./routes/submit";
 import retrieveRouter from "./routes/retrieve";
 import sessionRouter from "./routes/session";
 import autoSubmitRouter from "./routes/auto-submit";
+import telemetryRouter from "./routes/telemetry";
 import { sessionManager } from "./services/session-manager";
 import { jobManager } from "./services/job-manager";
+import { telemetryStore } from "./services/telemetry-store";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -38,6 +40,7 @@ app.get("/health", (_req, res) => {
     status: "ok",
     activeSessions: sessionManager.activeCount,
     activeJobs: jobManager.activeCount,
+    telemetrySessions: telemetryStore.sessionCount,
     timestamp: new Date().toISOString(),
   });
 });
@@ -47,6 +50,7 @@ app.use("/api/submit", submitRouter);
 app.use("/api/retrieve-qr", retrieveRouter);
 app.use("/api/session", sessionRouter);
 app.use("/api", autoSubmitRouter);
+app.use("/api", telemetryRouter);
 
 // 404 handler
 app.use((_req, res) => {
@@ -62,6 +66,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 // Start cleanup loops
 sessionManager.startCleanup();
 jobManager.startCleanup();
+telemetryStore.startCleanup();
 
 app.listen(PORT, () => {
   console.log(`[mdac-passthrough] Server running on port ${PORT}`);
