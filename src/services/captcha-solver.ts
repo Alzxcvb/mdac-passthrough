@@ -37,7 +37,8 @@ export interface SolverResult {
       | "double-edge"
       | "single-peak"
       | "darkness-fallback"
-      | "fallback-center";
+      | "fallback-center"
+      | "2captcha";
     matchX?: number;
     matchScore?: number;
     runnerUpScore?: number;
@@ -358,7 +359,7 @@ interface JimpLike {
   bitmap: { width: number; height: number; data: Uint8Array | Buffer };
 }
 
-function nonTransparentBBox(
+export function nonTransparentBBox(
   img: JimpLike
 ): { x: number; y: number; w: number; h: number } | null {
   const w = img.bitmap.width;

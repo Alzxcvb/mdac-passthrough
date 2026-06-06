@@ -15,6 +15,7 @@ import { randomUUID } from "crypto";
 import { chromium, type Browser, type Page } from "playwright";
 import { fillForm, captureCaptcha, retrieveQR } from "./mdac";
 import { solveSliderCaptcha, type SolverResult } from "./captcha-solver";
+import { is2CaptchaEnabled, solveWith2Captcha } from "./captcha-2captcha";
 import { DebugLogger, type DebugBundle } from "./debug";
 import type { MdacFormData } from "../types";
 
@@ -47,6 +48,12 @@ export interface JobState {
 
 const MAX_CONCURRENT_JOBS = 3;
 const MAX_SOLVER_ATTEMPTS = 3;
+// Attempt number at which we escalate from the local Jimp heuristic to the
+// 2Captcha human-backed solver (only when TWOCAPTCHA_API_KEY is set). Reaching
+// this attempt means the local solver already missed the earlier tries.
+// Set to 1 to go 2Captcha-first (more reliable, but spends real failed drags
+// against the live gov site before fallback otherwise — see the family doc).
+const FALLBACK_ON_ATTEMPT = MAX_SOLVER_ATTEMPTS;
 // 24h so we can pull the debug bundle the day after a real run.
 const JOB_TTL_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
@@ -235,11 +242,20 @@ class JobManager {
         const blockBuf = captcha.blockImageBase64
           ? Buffer.from(captcha.blockImageBase64, "base64")
           : undefined;
-        const solver = await solveSliderCaptcha({
+        const solverInput = {
           background: captchaBuf,
           block: blockBuf,
           blockOffsetX: captcha.blockOffsetX,
-        });
+        };
+        let solver = await solveSliderCaptcha(solverInput);
+
+        // Escalate to 2Captcha on the fallback attempt. It returns a SolverResult
+        // with the SAME dragX convention as the local solver, so it's a drop-in.
+        // Falls back to the local result if 2Captcha is disabled or errors.
+        if (attempt >= FALLBACK_ON_ATTEMPT && is2CaptchaEnabled()) {
+          const remote = await solveWith2Captcha(solverInput, log);
+          if (remote) solver = remote;
+        }
         a.solver = solver;
 
         log.push(
@@ -254,7 +270,13 @@ class JobManager {
             `debug=${JSON.stringify(solver.debug)}`
         );
 
-        if (solver.confidence < 0.2 && attempt === MAX_SOLVER_ATTEMPTS) {
+        // Only bail on low confidence for the local heuristic — 2Captcha returns
+        // a real human answer, so we always attempt its drag.
+        if (
+          solver.debug.method !== "2captcha" &&
+          solver.confidence < 0.2 &&
+          attempt === MAX_SOLVER_ATTEMPTS
+        ) {
           lastError = "CAPTCHA solver couldn't lock onto the puzzle (low confidence).";
           log.push("error", "solver.lowconf",
             `Final attempt has confidence ${solver.confidence.toFixed(2)} < 0.2 — giving up`);
