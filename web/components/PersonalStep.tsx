@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { type FormData } from "@/lib/types";
-import { COUNTRIES, NATIONALITIES } from "@/lib/mdac-codes";
+import { COUNTRIES, NATIONALITIES, resolveCountryName } from "@/lib/mdac-codes";
 
 function parseDOB(value: string): { day: string; month: string; year: string } {
   if (!value) return { day: "", month: "", year: "" };
@@ -43,6 +43,59 @@ export default function PersonalStep({ data, onChange, onNext }: Props) {
   const [pobSearch, setPobSearch] = useState(data.placeOfBirth);
   const [showPobDropdown, setShowPobDropdown] = useState(false);
   const [dob, setDob] = useState(() => parseDOB(data.dateOfBirth));
+  const [scanState, setScanState] = useState<"idle" | "scanning" | "done" | "error">("idle");
+  const [scanError, setScanError] = useState("");
+
+  const handlePassportScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setScanState("scanning");
+    setScanError("");
+
+    try {
+      const form = new FormData();
+      form.append("image", file);
+
+      const res = await fetch("/api/scan-passport", { method: "POST", body: form, signal: AbortSignal.timeout(30_000) });
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Scan failed");
+      }
+
+      const d = json.data;
+      const updates: Partial<FormData> = {};
+      if (d.fullName) updates.fullName = d.fullName;
+      if (d.passportNumber) updates.passportNumber = d.passportNumber;
+      if (d.nationality) {
+        const nationality = resolveCountryName(d.nationality);
+        updates.nationality = nationality;
+        setNatSearch(nationality);
+      }
+      if (d.dateOfBirth) {
+        updates.dateOfBirth = d.dateOfBirth;
+        setDob(parseDOB(d.dateOfBirth));
+      }
+      if (d.sex === "Male" || d.sex === "Female") updates.sex = d.sex;
+      if (d.passportExpiry) updates.passportExpiry = d.passportExpiry;
+      if (d.countryOfIssuance) updates.countryOfPassportIssuance = resolveCountryName(d.countryOfIssuance);
+      if (d.placeOfBirth) {
+        const placeOfBirth = resolveCountryName(d.placeOfBirth);
+        updates.placeOfBirth = placeOfBirth;
+        setPobSearch(placeOfBirth);
+      }
+      if (d.passportType === "Ordinary" || d.passportType === "Official" || d.passportType === "Diplomatic") {
+        updates.passportType = d.passportType;
+      }
+
+      onChange(updates);
+      setScanState("done");
+    } catch (err: unknown) {
+      setScanError(err instanceof Error ? err.message : "Scan failed");
+      setScanState("error");
+    }
+  };
 
   // Sync dob state → form state whenever any part changes
   useEffect(() => {
@@ -92,6 +145,52 @@ export default function PersonalStep({ data, onChange, onNext }: Props) {
       <div>
         <h2 className="text-xl font-bold text-gray-900">Personal Information</h2>
         <p className="text-sm text-gray-500 mt-1">As it appears in your passport</p>
+      </div>
+
+      {/* Passport Scan */}
+      <div className={`rounded-2xl border-2 border-dashed p-4 text-center transition-colors ${
+        scanState === "done" ? "border-green-300 bg-green-50" :
+        scanState === "error" ? "border-red-300 bg-red-50" :
+        scanState === "scanning" ? "border-[#003893] bg-blue-50" :
+        "border-gray-200 bg-gray-50"
+      }`}>
+        {scanState === "scanning" ? (
+          <div className="flex items-center justify-center gap-2 py-2">
+            <div className="w-5 h-5 border-2 border-[#003893] border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm font-medium text-[#003893]">Reading passport...</span>
+          </div>
+        ) : scanState === "done" ? (
+          <div className="py-1">
+            <p className="text-sm font-semibold text-green-700">Passport scanned — fields populated below</p>
+            <button
+              type="button"
+              onClick={() => setScanState("idle")}
+              className="text-xs text-green-600 underline mt-1"
+            >Scan again</button>
+          </div>
+        ) : (
+          <>
+            <label className="cursor-pointer block">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePassportScan}
+              />
+              <div className="flex flex-col items-center gap-2 py-2">
+                <svg className="w-8 h-8 text-[#003893]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <circle cx="12" cy="13" r="3" strokeWidth={1.5} />
+                </svg>
+                <span className="text-sm font-semibold text-[#003893]">Scan Passport Photo</span>
+                <span className="text-xs text-gray-400">Take a photo or upload — auto-fills all fields</span>
+              </div>
+            </label>
+            {scanState === "error" && (
+              <p className="text-xs text-red-500 mt-2">{scanError}. You can fill in the fields manually below.</p>
+            )}
+          </>
+        )}
       </div>
 
       {/* Full Name */}
