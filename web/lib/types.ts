@@ -1,4 +1,7 @@
 export interface FormData {
+  // Which country's arrival card this is for. Default "Malaysia".
+  country: "Malaysia" | "Indonesia";
+
   // Personal Info (Step 1)
   fullName: string;
   passportNumber: string;
@@ -25,11 +28,21 @@ export interface FormData {
   stateInMalaysia: string;
   postalCode: string;
 
+  // Indonesia-specific travel fields (only used when country === "Indonesia").
+  arrivalAirport: string;      // IATA, e.g. "CGK"
+  purposeOfTravel: string;     // purpose code (e.g. "5" = HOLIDAY)
+  accommodationType: "Hotel" | "Residential" | "Others" | "";
+  addressInIndonesia: string;  // residential address (when accommodationType = Residential)
+  indonesiaProvince: string;   // province name
+  indonesiaCity: string;       // city name
+  visaPermitNumber: string;    // visa / stay-permit number (optional)
+
   // Meta
   saveProfile: boolean;
 }
 
 export const EMPTY_FORM: FormData = {
+  country: "Malaysia",
   fullName: "",
   passportNumber: "",
   nationality: "",
@@ -52,6 +65,13 @@ export const EMPTY_FORM: FormData = {
   cityInMalaysia: "",
   stateInMalaysia: "",
   postalCode: "",
+  arrivalAirport: "",
+  purposeOfTravel: "",
+  accommodationType: "",
+  addressInIndonesia: "",
+  indonesiaProvince: "",
+  indonesiaCity: "",
+  visaPermitNumber: "",
   saveProfile: true,
 };
 

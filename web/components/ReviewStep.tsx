@@ -68,12 +68,35 @@ export default function ReviewStep({ data, onChange, onSubmit, onBack }: Props) 
           <ReviewRow label="Phone" value={`${data.phoneCountryCode} ${data.phoneNumber}`} />
           <ReviewRow label="Arrival" value={formatDate(data.arrivalDate)} />
           <ReviewRow label="Departure" value={formatDate(data.departureDate)} />
-          <ReviewRow label="Transport" value={`${data.modeOfTransport} — ${data.flightNumber}`} />
-          <ReviewRow label="Departed From" value={data.departureCountry} />
-          <ReviewRow label="Hotel" value={data.hotelName} />
-          <ReviewRow label="Address in MY" value={data.addressInMalaysia} />
-          <ReviewRow label="City / State" value={`${data.cityInMalaysia}, ${data.stateInMalaysia}`} />
-          <ReviewRow label="Postal Code" value={data.postalCode} />
+          {data.country === "Indonesia" ? (
+            <>
+              <ReviewRow label="Arrival Airport" value={data.arrivalAirport} />
+              <ReviewRow label="Flight" value={data.flightNumber} />
+              <ReviewRow label="Purpose" value={data.purposeOfTravel} />
+              <ReviewRow label="Accommodation" value={data.accommodationType} />
+              {data.accommodationType === "Hotel" ? (
+                <ReviewRow label="Hotel" value={data.hotelName} />
+              ) : (
+                <>
+                  <ReviewRow label="Address" value={data.addressInIndonesia} />
+                  <ReviewRow
+                    label="City / Province"
+                    value={`${data.indonesiaCity}, ${data.indonesiaProvince}`}
+                  />
+                </>
+              )}
+              <ReviewRow label="Visa / Permit" value={data.visaPermitNumber} />
+            </>
+          ) : (
+            <>
+              <ReviewRow label="Transport" value={`${data.modeOfTransport}, ${data.flightNumber}`} />
+              <ReviewRow label="Departed From" value={data.departureCountry} />
+              <ReviewRow label="Hotel" value={data.hotelName} />
+              <ReviewRow label="Address in MY" value={data.addressInMalaysia} />
+              <ReviewRow label="City / State" value={`${data.cityInMalaysia}, ${data.stateInMalaysia}`} />
+              <ReviewRow label="Postal Code" value={data.postalCode} />
+            </>
+          )}
         </div>
       </div>
 

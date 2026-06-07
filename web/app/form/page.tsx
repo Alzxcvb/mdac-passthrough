@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PersonalStep from "@/components/PersonalStep";
 import TravelStep from "@/components/TravelStep";
+import IndonesiaTravelStep from "@/components/IndonesiaTravelStep";
 import ReviewStep from "@/components/ReviewStep";
 import SubmitStep from "@/components/SubmitStep";
+import IndonesiaSubmitStep from "@/components/IndonesiaSubmitStep";
 import StepIndicator from "@/components/StepIndicator";
 import { FormData, EMPTY_FORM } from "@/lib/types";
 import {
@@ -157,16 +159,30 @@ function FormContent() {
 
       <div className="px-6 py-6 max-w-lg mx-auto">
         {step === 1 && (
-          <PersonalStep data={formData} onChange={handleChange} onNext={handleNext} />
+          <>
+            <CountrySelector
+              value={formData.country}
+              onChange={(country) => handleChange({ country })}
+            />
+            <PersonalStep data={formData} onChange={handleChange} onNext={handleNext} />
+          </>
         )}
-        {step === 2 && (
-          <TravelStep
-            data={formData}
-            onChange={handleChange}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        )}
+        {step === 2 &&
+          (formData.country === "Indonesia" ? (
+            <IndonesiaTravelStep
+              data={formData}
+              onChange={handleChange}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          ) : (
+            <TravelStep
+              data={formData}
+              onChange={handleChange}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          ))}
         {step === 3 && (
           <ReviewStep
             data={formData}
@@ -175,19 +191,69 @@ function FormContent() {
             onBack={handleBack}
           />
         )}
-        {step === 4 && (
-          <SubmitStep
-            data={formData}
-            onSuccess={handleSubmitSuccess}
-            onBack={() => {
-              setStep(3);
-              saveStep(3);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          />
-        )}
+        {step === 4 &&
+          (formData.country === "Indonesia" ? (
+            <IndonesiaSubmitStep
+              data={formData}
+              onSuccess={handleSubmitSuccess}
+              onBack={() => {
+                setStep(3);
+                saveStep(3);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          ) : (
+            <SubmitStep
+              data={formData}
+              onSuccess={handleSubmitSuccess}
+              onBack={() => {
+                setStep(3);
+                saveStep(3);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          ))}
       </div>
     </>
+  );
+}
+
+function CountrySelector({
+  value,
+  onChange,
+}: {
+  value: FormData["country"];
+  onChange: (country: FormData["country"]) => void;
+}) {
+  const options: { key: FormData["country"]; label: string; beta?: boolean }[] = [
+    { key: "Malaysia", label: "🇲🇾 Malaysia" },
+    { key: "Indonesia", label: "🇮🇩 Indonesia", beta: true },
+  ];
+  return (
+    <div className="mb-5">
+      <p className="text-sm font-semibold text-gray-700 mb-2">Which arrival card?</p>
+      <div className="grid grid-cols-2 gap-3">
+        {options.map((o) => (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onChange(o.key)}
+            className={`relative rounded-xl border-2 py-3 text-sm font-semibold transition-all active:scale-95 ${
+              value === o.key
+                ? "border-[#003893] bg-blue-50 text-[#003893]"
+                : "border-gray-200 bg-white text-gray-700"
+            }`}
+          >
+            {o.label}
+            {o.beta && (
+              <span className="ml-1.5 align-middle text-[9px] font-bold uppercase tracking-wide text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                Beta
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -208,7 +274,7 @@ export default function FormPage() {
           </svg>
         </button>
         <div className="flex-1">
-          <p className="text-sm font-semibold">Malaysia Arrival Card</p>
+          <p className="text-sm font-semibold">Arrival Card</p>
         </div>
       </div>
 
