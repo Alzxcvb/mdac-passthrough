@@ -1,0 +1,597 @@
+{
+  "responseCode": "00",
+  "responseTitle": null,
+  "responseDesc": "Success",
+  "transactionDetail": {
+    "data": [
+      {
+        "id": "39",
+        "name": "TTE - ACHMAD YANI PORT"
+      },
+      {
+        "id": "40",
+        "name": "AMA - AMAMAPARE PORT"
+      },
+      {
+        "id": "41",
+        "name": "AGK - ANGGREK PORT"
+      },
+      {
+        "id": "42",
+        "name": "BCP - BAGAN SIAPI API PORT"
+      },
+      {
+        "id": "44",
+        "name": "LAI - BANDAR BENTAN TELANI LAGOI PORT"
+      },
+      {
+        "id": "43",
+        "name": "BLS - BANDAR SRI SETIA RAJA PORT"
+      },
+      {
+        "id": "37",
+        "name": "BCR - BATAM CENTRE FERRY TERMINAL"
+      },
+      {
+        "id": "45",
+        "name": "BUR - BATU AMPAR PORT"
+      },
+      {
+        "id": "46",
+        "name": "BPD - BELAKANG PADANG PORT"
+      },
+      {
+        "id": "47",
+        "name": "BLW - BELAWAN PORT"
+      },
+      {
+        "id": "48",
+        "name": "BEN - BENETE PORT"
+      },
+      {
+        "id": "50",
+        "name": "BKG - BENGKONG PORT"
+      },
+      {
+        "id": "51",
+        "name": "BOA - BENOA PORT"
+      },
+      {
+        "id": "92",
+        "name": "BIA - BIAK PORT"
+      },
+      {
+        "id": "296",
+        "name": "TKBJ - BIOMAS JAYA ABADI SPECIAL TERMINAL"
+      },
+      {
+        "id": "56",
+        "name": "PLO - BOOM BARU PORT"
+      },
+      {
+        "id": "198",
+        "name": "TKRB - BUATAN SPECIAL TERMINAL"
+      },
+      {
+        "id": "57",
+        "name": "PLCL - CALANG PORT"
+      },
+      {
+        "id": "234",
+        "name": "TKCI - CARGILL INDONESIA SPECIAL IMMIGRATION CHECKPOINT (TPI)"
+      },
+      {
+        "id": "58",
+        "name": "CEB - CELUKAN BAWANG PORT"
+      },
+      {
+        "id": "61",
+        "name": "CRB - CIREBON PORT"
+      },
+      {
+        "id": "62",
+        "name": "CTT - CITRA TRITUNAS PORT (HARBOUR BAY)"
+      },
+      {
+        "id": "63",
+        "name": "CIW - CIWANDAN PORT"
+      },
+      {
+        "id": "64",
+        "name": "DUM - DUMAI PORT"
+      },
+      {
+        "id": "65",
+        "name": "PNK - DWI KORA PORT"
+      },
+      {
+        "id": "199",
+        "name": "TKRF - FUTONG SPECIAL TERMINAL"
+      },
+      {
+        "id": "68",
+        "name": "GNG - GARONGKONG PORT"
+      },
+      {
+        "id": "70",
+        "name": "GNS - GUNUNG SITOLI PORT"
+      },
+      {
+        "id": "71",
+        "name": "DJM - JAMBI PORT"
+      },
+      {
+        "id": "94",
+        "name": "DJY - JAYAPURA PORT"
+      },
+      {
+        "id": "73",
+        "name": "KAB - KABIL PORT"
+      },
+      {
+        "id": "293",
+        "name": "TKFI - KALIMANTAN FERRO INDUSTRY SPECIAL TERMINAL"
+      },
+      {
+        "id": "75",
+        "name": "KDI - KENDARI PORT"
+      },
+      {
+        "id": "302",
+        "name": "KJG - KIJING PORT"
+      },
+      {
+        "id": "300",
+        "name": "TUA - KISAR ISLAND SPECIAL TERMINAL"
+      },
+      {
+        "id": "78",
+        "name": "KBU - KOTA BARU PORT"
+      },
+      {
+        "id": "80",
+        "name": "ENO - KUALA ENOK PORT"
+      },
+      {
+        "id": "81",
+        "name": "KUA - KUALA LANGSA PORT"
+      },
+      {
+        "id": "83",
+        "name": "KTJ - KUALA TANJUNG PORT"
+      },
+      {
+        "id": "85",
+        "name": "KTK - KUALA TUNGKAL PORT"
+      },
+      {
+        "id": "87",
+        "name": "KUM - KUMAI PORT"
+      },
+      {
+        "id": "89",
+        "name": "LBO - LABUAN BAJO PORT"
+      },
+      {
+        "id": "95",
+        "name": "PLLU - LABUAN UKI PORT"
+      },
+      {
+        "id": "90",
+        "name": "LSM - LAUREN SAY PORT"
+      },
+      {
+        "id": "99",
+        "name": "LBR - LEMBAR PORT"
+      },
+      {
+        "id": "298",
+        "name": "TUA - LETTI ISLAND SPECIAL TERMINAL"
+      },
+      {
+        "id": "101",
+        "name": "KGH - LHOKSEUMAWE PORT"
+      },
+      {
+        "id": "297",
+        "name": "TUA - LIRANG ISLAND SPECIAL TERMINAL"
+      },
+      {
+        "id": "102",
+        "name": "MLH - MALAHAYATI PORT"
+      },
+      {
+        "id": "104",
+        "name": "MLD - MALUNDUNG PORT"
+      },
+      {
+        "id": "105",
+        "name": "MDO - MANADO PORT"
+      },
+      {
+        "id": "108",
+        "name": "ACL - MARINA ANCOL PORT"
+      },
+      {
+        "id": "202",
+        "name": "TKMB - MEDANA BAY MARINA TOURISM SPECIAL TERMINAL"
+      },
+      {
+        "id": "112",
+        "name": "MKE - MERAUKE PORT"
+      },
+      {
+        "id": "299",
+        "name": "TUA - MOA ISLAND SPECIAL TERMINAL"
+      },
+      {
+        "id": "114",
+        "name": "MSK - MUARA SABAK PORT"
+      },
+      {
+        "id": "116",
+        "name": "NON - NONGSA BATAM PORT"
+      },
+      {
+        "id": "119",
+        "name": "PAP - NUSANTARA PARE PARE PORT"
+      },
+      {
+        "id": "118",
+        "name": "THA - NUSANTARA PORT"
+      },
+      {
+        "id": "121",
+        "name": "PBI - PADANG BAI SINGARAJA PORT"
+      },
+      {
+        "id": "122",
+        "name": "PRN - PANARUKAN PORT"
+      },
+      {
+        "id": "124",
+        "name": "PGX - PANGKAL BALAM PORT"
+      },
+      {
+        "id": "303",
+        "name": "PNP - PANIPAHAN PORT"
+      },
+      {
+        "id": "125",
+        "name": "PJG - PANJANG PORT"
+      },
+      {
+        "id": "126",
+        "name": "PTL - PANTOLOAN PORT"
+      },
+      {
+        "id": "128",
+        "name": "PAZ - PASURUAN PORT"
+      },
+      {
+        "id": "129",
+        "name": "PMB - PATIMBAN PORT"
+      },
+      {
+        "id": "291",
+        "name": "TKPP - PRIMA COAL TBK SPECIAL TERMINAL"
+      },
+      {
+        "id": "130",
+        "name": "PRO - PROBOLINGGO PORT"
+      },
+      {
+        "id": "204",
+        "name": "TKTL - PT BADAK NATURAL GAS LIQUEFACTION SPECIAL TERMINAL"
+      },
+      {
+        "id": "225",
+        "name": "TBDM - PT. BINTANGDELAPAN MINERAL SPECIAL TERMINAL"
+      },
+      {
+        "id": "205",
+        "name": "TBLR - PT BINTAN LAGOON RESORT SPECIAL TERMINAL"
+      },
+      {
+        "id": "207",
+        "name": "TKCG - PT CEMINDO GEMILANG SPECIAL TERMINAL"
+      },
+      {
+        "id": "208",
+        "name": "TCNS - PT CONCH NORTH SULAWESI CEMENT SPECIAL TERMINAL"
+      },
+      {
+        "id": "227",
+        "name": "TDSL - PT. DONGGI SENORO LNG SPECIAL TERMINAL"
+      },
+      {
+        "id": "228",
+        "name": "TKEU - PT. ENERGI UNGGUL PERSADA SPECIAL TERMINAL"
+      },
+      {
+        "id": "209",
+        "name": "TKHN - PT HUADI NICKEL ALLOY INDONESIA SPECIAL TERMINAL"
+      },
+      {
+        "id": "229",
+        "name": "TKIK - PT. INDAH KIAT PULP AND PAPER SPECIAL TERMINAL"
+      },
+      {
+        "id": "210",
+        "name": "TIDM - PT INDOMINCO MANDIRI SPECIAL TERMINAL"
+      },
+      {
+        "id": "211",
+        "name": "TKKM - PT KALTIM METHANOL INDUSTRI SPECIAL TERMINAL"
+      },
+      {
+        "id": "76",
+        "name": "TLTT - PT KALTIM PRIMA COAL LUBUK TUTUNG SPECIAL PORT"
+      },
+      {
+        "id": "77",
+        "name": "TTBA - PT KALTIM PRIMA COAL TANJUNG BARA SPECIAL PORT"
+      },
+      {
+        "id": "212",
+        "name": "TKJA - PT KIDECO JAYA AGUNG SPECIAL TERMINAL"
+      },
+      {
+        "id": "292",
+        "name": "TKXX - PT KOBEXINDO CEMENT SPECIAL TERMINAL"
+      },
+      {
+        "id": "213",
+        "name": "TMBA - PT MIFA BERSAUDARA SPECIAL TERMINAL"
+      },
+      {
+        "id": "290",
+        "name": "TKM - PT MULTI MINERAL INDONESIA PORT"
+      },
+      {
+        "id": "230",
+        "name": "TPAU - PT. PANCA AMARA UTAMA SPECIAL TERMINAL"
+      },
+      {
+        "id": "295",
+        "name": "PMS - PT PELABUHAN MUARA SEMPARA SPECIAL TERMINAL"
+      },
+      {
+        "id": "197",
+        "name": "KBB - PT PERTAMINA BAUBAU BBM SPECIAL TERMINAL"
+      },
+      {
+        "id": "216",
+        "name": "TPKT - PT PUPUK KALIMANTAN TIMUR SPECIAL TERMINAL"
+      },
+      {
+        "id": "217",
+        "name": "TKSD - PT SDIC PAPUA CEMENT INDONESIA SPECIAL TERMINAL"
+      },
+      {
+        "id": "218",
+        "name": "TKST - PT SEMEN TONASA SPECIAL TERMINAL"
+      },
+      {
+        "id": "219",
+        "name": "TKSP - PT SINAR WIJAYA PLYWOOD INDUSTRY SPECIAL TERMINAL"
+      },
+      {
+        "id": "236",
+        "name": "TKSW - PT. STEELINDO WAHANA PERKASA IMMIGRATION CHECKPOINT (TPIK)"
+      },
+      {
+        "id": "220",
+        "name": "TKSI - PT SUMBER INDAH PERKASA SPECIAL TERMINAL"
+      },
+      {
+        "id": "221",
+        "name": "TTSL - PT TANJUNG SARANA LESTARI SPECIAL TERMINAL"
+      },
+      {
+        "id": "222",
+        "name": "TKTS - PT TRITUNAS SINAR BENUA SPECIAL TERMINAL (NIRUP ISLAND)"
+      },
+      {
+        "id": "223",
+        "name": "TKVI - PT VALE INDONESIA SPECIAL TERMINAL"
+      },
+      {
+        "id": "224",
+        "name": "TWHW - PT WELL HARVEST WINNING ALUMINA REFINERY SPECIAL TERMINAL"
+      },
+      {
+        "id": "132",
+        "name": "PBA - PULAU BAAI PORT"
+      },
+      {
+        "id": "133",
+        "name": "SBA - SABANG PORT"
+      },
+      {
+        "id": "134",
+        "name": "SRI - SAMARINDA PORT"
+      },
+      {
+        "id": "136",
+        "name": "SMQ - SAMPIT PORT"
+      },
+      {
+        "id": "137",
+        "name": "BIT - SAMUDERA BITUNG PORT"
+      },
+      {
+        "id": "96",
+        "name": "SXK - SAUMLAKI PORT"
+      },
+      {
+        "id": "139",
+        "name": "SKP - SEKUPANG PORT"
+      },
+      {
+        "id": "140",
+        "name": "STA - SELAT LAMPA PORT"
+      },
+      {
+        "id": "141",
+        "name": "BPP - SEMAYANG PORT"
+      },
+      {
+        "id": "142",
+        "name": "LBM - SERI UDANA LOBAM PORT"
+      },
+      {
+        "id": "143",
+        "name": "SSI - SIAK SRI INDRAPURA PORT"
+      },
+      {
+        "id": "144",
+        "name": "SLG - SIBOLGA PORT"
+      },
+      {
+        "id": "145",
+        "name": "SNE - SINTETE PORT"
+      },
+      {
+        "id": "147",
+        "name": "MAK - SOEKARNO-HATTA PORT"
+      },
+      {
+        "id": "148",
+        "name": "SOQ - SORONG PORT"
+      },
+      {
+        "id": "149",
+        "name": "TPN - SRI BAYINTAN PORT"
+      },
+      {
+        "id": "150",
+        "name": "SBP - SRI BINTAN PURA PORT"
+      },
+      {
+        "id": "152",
+        "name": "SKL - SUNDA KELAPA PORT"
+      },
+      {
+        "id": "154",
+        "name": "SUQ - SUNGAI GUNTUNG PORT"
+      },
+      {
+        "id": "156",
+        "name": "SGP - SUNGAI PAKNING BENGKALIS PORT"
+      },
+      {
+        "id": "193",
+        "name": "TAB - TABONEO PORT"
+      },
+      {
+        "id": "200",
+        "name": "TKBP - TANGGUH LNG SPECIAL TERMINAL"
+      },
+      {
+        "id": "158",
+        "name": "TBK - TANJUNG BALAI KARIMUN PORT"
+      },
+      {
+        "id": "97",
+        "name": "PLBT - TANJUNG BUTON PORT"
+      },
+      {
+        "id": "159",
+        "name": "TES - TANJUNG EMAS PORT"
+      },
+      {
+        "id": "160",
+        "name": "BLN - TANJUNG GUDANG PORT"
+      },
+      {
+        "id": "162",
+        "name": "SPA - TANJUNG HARAPAN PORT"
+      },
+      {
+        "id": "164",
+        "name": "CXP - TANJUNG INTAN PORT"
+      },
+      {
+        "id": "165",
+        "name": "TGN - TANJUNG KALIAN PORT"
+      },
+      {
+        "id": "167",
+        "name": "TEN - TANJUNG LONTAR TENAU PORT"
+      },
+      {
+        "id": "169",
+        "name": "TMD - TANJUNG MEDANG BENGKALIS PORT"
+      },
+      {
+        "id": "170",
+        "name": "TPD - TANJUNG PANDAN PORT"
+      },
+      {
+        "id": "172",
+        "name": "TJP - TANJUNG PERAK PORT"
+      },
+      {
+        "id": "173",
+        "name": "JKT - TANJUNG PRIOK PORT"
+      },
+      {
+        "id": "176",
+        "name": "TAN - TANJUNG UBAN PORT"
+      },
+      {
+        "id": "177",
+        "name": "BJU - TANJUNG WANGI PORT"
+      },
+      {
+        "id": "179",
+        "name": "TMP - TAREMPA PORT"
+      },
+      {
+        "id": "180",
+        "name": "TBR - TELUK BAYUR PORT"
+      },
+      {
+        "id": "183",
+        "name": "TSH - TELUK NIBUNG PORT"
+      },
+      {
+        "id": "184",
+        "name": "SNB - TELUK SENIMBA MARINA PORT"
+      },
+      {
+        "id": "185",
+        "name": "TBH - TEMBILAHAN PORT"
+      },
+      {
+        "id": "187",
+        "name": "TRI - TRI SAKTI PORT"
+      },
+      {
+        "id": "237",
+        "name": "TKTT - TRI TUNAS UNGGUL TELUK"
+      },
+      {
+        "id": "190",
+        "name": "TUA - TUAL PORT"
+      },
+      {
+        "id": "191",
+        "name": "DBJ - TUNON TAKA PORT"
+      },
+      {
+        "id": "301",
+        "name": "TUA - WETAR ISLAND SPECIAL TERMINAL"
+      },
+      {
+        "id": "98",
+        "name": "AMB - YOS SUDARSO AMBON PORT"
+      },
+      {
+        "id": "235",
+        "name": "TKYN - YOUSHAN NICKEL INDONESIA SPECIAL IMMIGRATION CHECKPOINT (TPI)"
+      }
+    ]
+  }
+}

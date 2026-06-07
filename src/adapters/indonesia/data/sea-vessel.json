@@ -1,0 +1,25 @@
+{
+  "responseCode": "00",
+  "responseTitle": null,
+  "responseDesc": "Success",
+  "transactionDetail": {
+    "data": [
+      {
+        "id": "1",
+        "name": "YACHT"
+      },
+      {
+        "id": "2",
+        "name": "FERRY"
+      },
+      {
+        "id": "3",
+        "name": "CRUISE"
+      },
+      {
+        "id": "4",
+        "name": "CARGO / TANKER"
+      }
+    ]
+  }
+}

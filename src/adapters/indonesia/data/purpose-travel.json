@@ -1,0 +1,69 @@
+{
+  "responseCode": "00",
+  "responseTitle": null,
+  "responseDesc": "Success",
+  "transactionDetail": {
+    "data": [
+      {
+        "id": "1",
+        "name": "1-DAY TRANSIT",
+        "code": ""
+      },
+      {
+        "id": "2",
+        "name": "BUSINESS/MEETING/CONFERENCE/CONVENTION/EXHIBITION",
+        "code": ""
+      },
+      {
+        "id": "13",
+        "name": "CREW",
+        "code": ""
+      },
+      {
+        "id": "3",
+        "name": "EDUCATION/TRAINING",
+        "code": ""
+      },
+      {
+        "id": "4",
+        "name": "EMPLOYMENT",
+        "code": ""
+      },
+      {
+        "id": "5",
+        "name": "HOLIDAY/SIGHTSEEING/LEISURE",
+        "code": ""
+      },
+      {
+        "id": "6",
+        "name": "MEDICAL CARE",
+        "code": ""
+      },
+      {
+        "id": "7",
+        "name": "OFFICIAL/GOVERNMENT VISIT",
+        "code": ""
+      },
+      {
+        "id": "8",
+        "name": "RELIGION",
+        "code": ""
+      },
+      {
+        "id": "9",
+        "name": "SPORT EVENT",
+        "code": ""
+      },
+      {
+        "id": "11",
+        "name": "VISITING FRIENDS/RELATIVES",
+        "code": ""
+      },
+      {
+        "id": "12",
+        "name": "OTHERS",
+        "code": "OT"
+      }
+    ]
+  }
+}

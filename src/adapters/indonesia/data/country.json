@@ -1,0 +1,1395 @@
+{
+  "responseCode": "00",
+  "responseTitle": null,
+  "responseDesc": "Success",
+  "transactionDetail": {
+    "data": [
+      {
+        "id": "23e7b6c9-9b41-41af-ac38-3edb6022521c",
+        "name": "INDONESIA",
+        "phoneCode": "+62",
+        "code": "IDN"
+      },
+      {
+        "id": "36830c33-a24a-4aa1-aaa2-2c3651ce787c",
+        "name": "AFGHANISTAN",
+        "phoneCode": "+93",
+        "code": "AFG"
+      },
+      {
+        "id": "df26b6b5-b957-44fc-8775-5a307aff676c",
+        "name": "ALBANIA",
+        "phoneCode": "+355",
+        "code": "ALB"
+      },
+      {
+        "id": "ee9a47a3-c229-4384-a00e-c5d3132a2b6a",
+        "name": "ALGERIA",
+        "phoneCode": "+213",
+        "code": "DZA"
+      },
+      {
+        "id": "f57b1c29-b107-402d-a33c-2198d61dee4a",
+        "name": "AMERICAN SAMOA",
+        "phoneCode": "+1",
+        "code": "ASM"
+      },
+      {
+        "id": "7fc48e74-1a09-4edd-9bca-d6622ea82b1e",
+        "name": "ANDORRA",
+        "phoneCode": "+376",
+        "code": "AND"
+      },
+      {
+        "id": "2cd8b0e4-f9a4-44f5-8014-23f1f03d3193",
+        "name": "ANGOLA",
+        "phoneCode": "+244",
+        "code": "AGO"
+      },
+      {
+        "id": "7d9c632d-106a-40b5-b4de-d46572bdb18e",
+        "name": "ANGUILLA",
+        "phoneCode": "+1",
+        "code": "AIA"
+      },
+      {
+        "id": "dab42168-cd9e-4e6f-86ec-a1a773d34684",
+        "name": "ANTIGUA AND BARBUDA",
+        "phoneCode": "+1",
+        "code": "ATG"
+      },
+      {
+        "id": "7a0eaa53-353b-4206-9299-1badcdb0fdf1",
+        "name": "ARGENTINA",
+        "phoneCode": "+54",
+        "code": "ARG"
+      },
+      {
+        "id": "e7bcd2e1-fb4b-4748-8fce-b2d0e3b3827c",
+        "name": "ARMENIA",
+        "phoneCode": "+374",
+        "code": "ARM"
+      },
+      {
+        "id": "46283cb1-d406-47c1-86fd-8c308ffa173a",
+        "name": "AUSTRALIA",
+        "phoneCode": "+61",
+        "code": "AUS"
+      },
+      {
+        "id": "727e690b-fc21-4b8a-b17f-1de1616433b7",
+        "name": "AUSTRIA",
+        "phoneCode": "+43",
+        "code": "AUT"
+      },
+      {
+        "id": "a11144b1-8228-42d5-8242-a0f529c0de10",
+        "name": "AZERBAIJAN",
+        "phoneCode": "+994",
+        "code": "AZE"
+      },
+      {
+        "id": "0685586c-7e37-4aa1-8020-f4aa453e9472",
+        "name": "BAHAMAS",
+        "phoneCode": "+1-242",
+        "code": "BHS"
+      },
+      {
+        "id": "f3373174-008f-4f5c-b902-e79763719c64",
+        "name": "BAHRAIN",
+        "phoneCode": "+973",
+        "code": "BHR"
+      },
+      {
+        "id": "a14de768-1e37-4d93-8def-352266de349a",
+        "name": "BANGLADESH",
+        "phoneCode": "+880",
+        "code": "BGD"
+      },
+      {
+        "id": "02054c21-3f67-4fe3-95bc-d20106985e49",
+        "name": "BARBADOS",
+        "phoneCode": "+1",
+        "code": "BRB"
+      },
+      {
+        "id": "9ff91215-8e06-45b4-8f88-f7685d249358",
+        "name": "BELARUS",
+        "phoneCode": "+375",
+        "code": "BLR"
+      },
+      {
+        "id": "94629b00-f4c4-46bd-b263-cc7c53f8b9d9",
+        "name": "BELGIUM",
+        "phoneCode": "+32",
+        "code": "BEL"
+      },
+      {
+        "id": "ada414e8-6fd5-4b69-82eb-89472e20d3be",
+        "name": "BELIZE",
+        "phoneCode": "+501",
+        "code": "BLZ"
+      },
+      {
+        "id": "88a03b34-1b9e-4bd6-ba7b-2a7bd8838c24",
+        "name": "BENIN",
+        "phoneCode": "+229",
+        "code": "BEN"
+      },
+      {
+        "id": "50425995-e990-47c5-8e5e-882840ef2b7a",
+        "name": "BERMUDA",
+        "phoneCode": "+1",
+        "code": "BMU"
+      },
+      {
+        "id": "4528297b-9315-45f8-adf1-3a5f0b7e994f",
+        "name": "BHUTAN",
+        "phoneCode": "+975",
+        "code": "BTN"
+      },
+      {
+        "id": "bdc856ae-6948-4381-9648-8fc41bef7577",
+        "name": "BOLIVIA",
+        "phoneCode": "+591",
+        "code": "BOL"
+      },
+      {
+        "id": "fa943b74-22e9-4650-bccb-14b466bde722",
+        "name": "BOSNIA AND HERZEGOVINA",
+        "phoneCode": "+387",
+        "code": "BIH"
+      },
+      {
+        "id": "f98613a2-3816-4af6-8d27-e7edc2e67366",
+        "name": "BOTSWANA",
+        "phoneCode": "+267",
+        "code": "BWA"
+      },
+      {
+        "id": "cf4dfdbe-327b-4c9a-bd39-441a338cd276",
+        "name": "BRAZIL",
+        "phoneCode": "+55",
+        "code": "BRA"
+      },
+      {
+        "id": "687653fc-236b-4bc8-baf8-88a81f17618a",
+        "name": "BRUNEI DARUSSALAM",
+        "phoneCode": "+673",
+        "code": "BRN"
+      },
+      {
+        "id": "7345359f-4f82-4089-a153-acf32254b0a3",
+        "name": "BULGARIA",
+        "phoneCode": "+359",
+        "code": "BGR"
+      },
+      {
+        "id": "83c3ceed-af1c-4b06-bb4a-0217712043c8",
+        "name": "BURKINA FASO",
+        "phoneCode": "+226",
+        "code": "BFA"
+      },
+      {
+        "id": "ff78c621-fa7f-467b-812c-9912e88ac430",
+        "name": "BURUNDI",
+        "phoneCode": "+257",
+        "code": "BDI"
+      },
+      {
+        "id": "3f387ed5-13e6-42b8-ba77-84f281d995f7",
+        "name": "CAMBODIA",
+        "phoneCode": "+855",
+        "code": "KHM"
+      },
+      {
+        "id": "1d91caf5-bcf2-4e4b-8c77-7d62781bf220",
+        "name": "CAMEROON",
+        "phoneCode": "+237",
+        "code": "CMR"
+      },
+      {
+        "id": "47db151f-ce3e-406d-b707-8fcdfd088a61",
+        "name": "CANADA",
+        "phoneCode": "+1",
+        "code": "CAN"
+      },
+      {
+        "id": "3ecf1c2c-de95-4811-9e5e-4b03816a108a",
+        "name": "CAPE VERDE",
+        "phoneCode": "+238",
+        "code": "CPV"
+      },
+      {
+        "id": "0c72f1ee-2e31-4713-86ac-e079c0f994e7",
+        "name": "CENTRAL AFRICAN REPUBLIC",
+        "phoneCode": "+236",
+        "code": "CAF"
+      },
+      {
+        "id": "abbd5561-fde5-42e5-8237-382ab808ec8f",
+        "name": "CHAD",
+        "phoneCode": "+235",
+        "code": "TCD"
+      },
+      {
+        "id": "0c597abe-9cf2-4171-8449-06bcc928afd8",
+        "name": "CHILE",
+        "phoneCode": "+56",
+        "code": "CHL"
+      },
+      {
+        "id": "883891b6-1c3f-41c3-9279-4745f63575cb",
+        "name": "CHINA",
+        "phoneCode": "+86",
+        "code": "CHN"
+      },
+      {
+        "id": "13fdc3be-15a8-435f-a47a-885f8b687894",
+        "name": "CHRISTMAS ISLAND",
+        "phoneCode": "+61",
+        "code": "CXR"
+      },
+      {
+        "id": "4579581c-68de-41c6-bd7b-e68a90db20d4",
+        "name": "COCOS ISLANDS",
+        "phoneCode": "+61",
+        "code": "CCK"
+      },
+      {
+        "id": "76578a13-3e64-41da-8d91-deef561311c2",
+        "name": "COLOMBIA",
+        "phoneCode": "+99",
+        "code": "COL"
+      },
+      {
+        "id": "e350c59c-5236-4207-8ef9-88e4aebeda9d",
+        "name": "COMOROS",
+        "phoneCode": "+269",
+        "code": "COM"
+      },
+      {
+        "id": "41d426c7-b47f-4e73-a810-dc78bcaae82f",
+        "name": "CONGO REPUBLIC",
+        "phoneCode": "+242",
+        "code": "COG"
+      },
+      {
+        "id": "d16f1de8-e959-4569-89ab-0e165456eeb0",
+        "name": "COSTA RICA",
+        "phoneCode": "+506",
+        "code": "CRI"
+      },
+      {
+        "id": "a93f74b3-fcc6-473c-89f9-0e7af7d7f6b6",
+        "name": "CROATIA",
+        "phoneCode": "+385",
+        "code": "HRV"
+      },
+      {
+        "id": "4f6e354a-ca46-49f3-b035-8188b2d1f6b6",
+        "name": "CUBA",
+        "phoneCode": "+53",
+        "code": "CUB"
+      },
+      {
+        "id": "8e5508a3-0173-4be4-bdc8-23986b9179d7",
+        "name": "CYPRUS",
+        "phoneCode": "+357",
+        "code": "CYP"
+      },
+      {
+        "id": "26e58515-f688-4d12-b8b5-e9f430a280ca",
+        "name": "CZECHOSLOVAKIA",
+        "phoneCode": "+42",
+        "code": "CSK"
+      },
+      {
+        "id": "318736c7-f14f-4560-a65a-8c2304ea6805",
+        "name": "CZECH REPUBLIC",
+        "phoneCode": "+420",
+        "code": "CZE"
+      },
+      {
+        "id": "7d5d09ba-f7a2-4780-a730-ac5749aeae88",
+        "name": "DEMOCRATIC REPUBLIC OF CONGO",
+        "phoneCode": "+243",
+        "code": "COD"
+      },
+      {
+        "id": "25d567a3-7a4e-4248-9800-647028da9b71",
+        "name": "DENMARK",
+        "phoneCode": "+45",
+        "code": "DNK"
+      },
+      {
+        "id": "79c7ec19-d69c-48f4-9cbc-96110e24667d",
+        "name": "DJIBOUTI",
+        "phoneCode": "+253",
+        "code": "DJI"
+      },
+      {
+        "id": "ac9f23a8-fd8e-4877-bab8-367ce26cbb06",
+        "name": "DOMINICA",
+        "phoneCode": "+1",
+        "code": "DMA"
+      },
+      {
+        "id": "0df2afd4-1945-40c3-a3bb-bcc1fa8ab081",
+        "name": "DOMINICAN REPUBLIC",
+        "phoneCode": "+1",
+        "code": "DOM"
+      },
+      {
+        "id": "c7339e3d-cbe9-4893-af6f-0bdc4b6ebd26",
+        "name": "ECUADOR",
+        "phoneCode": "+593",
+        "code": "ECU"
+      },
+      {
+        "id": "29a5479e-3e9a-4fe6-a4b2-705de1654fb7",
+        "name": "EGYPT",
+        "phoneCode": "+20",
+        "code": "EGY"
+      },
+      {
+        "id": "c20c9d1a-3d42-48c1-8033-12a837058ba6",
+        "name": "EL SALVADOR",
+        "phoneCode": "+503",
+        "code": "SLV"
+      },
+      {
+        "id": "70003abd-8f1e-4baa-b513-a406405c85bd",
+        "name": "EQUATORIAL GUINEA",
+        "phoneCode": "+240",
+        "code": "GNQ"
+      },
+      {
+        "id": "e9ab2043-0c97-4c52-b103-8118861898d0",
+        "name": "ERITREA",
+        "phoneCode": "+291",
+        "code": "ERI"
+      },
+      {
+        "id": "448fa696-e0ca-4e5f-89cd-671f04d48c9f",
+        "name": "ESTONIA",
+        "phoneCode": "+372",
+        "code": "EST"
+      },
+      {
+        "id": "033731b5-112f-49bc-a182-7b1429049dbf",
+        "name": "ESWATINI",
+        "phoneCode": "+268",
+        "code": "SHO"
+      },
+      {
+        "id": "a0a10b9e-3157-4d65-84c3-e96bc8a99979",
+        "name": "ETHIOPIA",
+        "phoneCode": "+251",
+        "code": "ETH"
+      },
+      {
+        "id": "6906664e-9925-4ffb-bf88-567e8bf19113",
+        "name": "FALKLAND ISLANDS",
+        "phoneCode": "+500",
+        "code": "FLK"
+      },
+      {
+        "id": "7238722f-5081-47e2-aa2b-0867b6d6a3ae",
+        "name": "FAROE ISLANDS",
+        "phoneCode": "+298",
+        "code": "FRO"
+      },
+      {
+        "id": "67f91d7d-5166-44d3-b050-45fe4fa6bad7",
+        "name": "FIJI",
+        "phoneCode": "+679",
+        "code": "FJI"
+      },
+      {
+        "id": "52006b57-7b02-4902-b55d-0dadc577b75c",
+        "name": "FINLAND",
+        "phoneCode": "+358",
+        "code": "FIN"
+      },
+      {
+        "id": "23e8665d-2f2c-4841-acf6-6a2cac358ed4",
+        "name": "FRANCE",
+        "phoneCode": "+33",
+        "code": "FRA"
+      },
+      {
+        "id": "b62eb44a-686b-4452-ae09-637e23feb251",
+        "name": "FRENCH GUIANA",
+        "phoneCode": "+594",
+        "code": "GUF"
+      },
+      {
+        "id": "38381f24-d8fb-42e4-ba80-f0b1451e5577",
+        "name": "GABON",
+        "phoneCode": "+241",
+        "code": "GAB"
+      },
+      {
+        "id": "41d04ba0-6764-4b55-88ed-e1f776743128",
+        "name": "GAMBIA",
+        "phoneCode": "+220",
+        "code": "GMB"
+      },
+      {
+        "id": "f851c74a-b9dc-4d9d-a99c-65b6a69afe95",
+        "name": "GEORGIA",
+        "phoneCode": "+995",
+        "code": "GEO"
+      },
+      {
+        "id": "2d7c66c1-9341-459c-83a8-8138766b133c",
+        "name": "GERMANY",
+        "phoneCode": "+49",
+        "code": "D"
+      },
+      {
+        "id": "012e51a0-4e9c-4dfd-8438-b4cc375fb0ed",
+        "name": "GHANA",
+        "phoneCode": "+233",
+        "code": "GHA"
+      },
+      {
+        "id": "47aa18d9-ed29-4250-9206-6f0cdaec94ff",
+        "name": "GREECE",
+        "phoneCode": "+30",
+        "code": "GRC"
+      },
+      {
+        "id": "9d14a529-4116-449f-818f-538994ae14c8",
+        "name": "GRENADA",
+        "phoneCode": "+1",
+        "code": "GRD"
+      },
+      {
+        "id": "0fc0a977-8120-4b88-90ef-d4a94c7824e1",
+        "name": "GUAM",
+        "phoneCode": "+1",
+        "code": "GUM"
+      },
+      {
+        "id": "0159ccc8-a34c-4a6d-846f-510296a43536",
+        "name": "GUATEMALA",
+        "phoneCode": "+502",
+        "code": "GTM"
+      },
+      {
+        "id": "5cd3306f-e3de-4031-b1f4-fb5d07e4de70",
+        "name": "GUINEA",
+        "phoneCode": "+224",
+        "code": "GIN"
+      },
+      {
+        "id": "e04e1e50-e2a8-4b11-97c3-f0c8d759af9a",
+        "name": "GUINEA-BISSAU",
+        "phoneCode": "+245",
+        "code": "GNB"
+      },
+      {
+        "id": "77774317-99e1-43c3-ada2-62aaf1a22f81",
+        "name": "GUYANA",
+        "phoneCode": "+592",
+        "code": "GUY"
+      },
+      {
+        "id": "91d309f2-de3f-40bb-80e7-4b68077fdc33",
+        "name": "HAITI",
+        "phoneCode": "+509",
+        "code": "HTI"
+      },
+      {
+        "id": "20246314-d590-47d9-9f86-59b0740185b0",
+        "name": "HEARD AND KEPULAUAN MCDONALD",
+        "phoneCode": "00161",
+        "code": "HMD"
+      },
+      {
+        "id": "cbe8fb4d-7ba4-4108-b379-0abf0b85569a",
+        "name": "HOLY SEE (VATICAN CITY STATE)",
+        "phoneCode": "+39",
+        "code": "VAT"
+      },
+      {
+        "id": "1fee433d-5093-4752-bd18-019be82ebcae",
+        "name": "HONDURAS",
+        "phoneCode": "+504",
+        "code": "HND"
+      },
+      {
+        "id": "2ecd2c23-33ff-4624-80d3-900777e7801e",
+        "name": "HONG KONG SAR",
+        "phoneCode": "+852",
+        "code": "HKG"
+      },
+      {
+        "id": "5d2f2361-562a-4f59-84f7-a8dabb127add",
+        "name": "HUNGARY",
+        "phoneCode": "+36",
+        "code": "HUN"
+      },
+      {
+        "id": "e6ff784e-9de7-44a8-9f67-2c3beecd2efc",
+        "name": "ICELAND",
+        "phoneCode": "+354",
+        "code": "ISL"
+      },
+      {
+        "id": "f51f4255-1b0b-4a1b-be01-4bc82909c33e",
+        "name": "INDIA",
+        "phoneCode": "+91",
+        "code": "IND"
+      },
+      {
+        "id": "66c0c992-6f20-4464-afa0-160e48985792",
+        "name": "IRAN",
+        "phoneCode": "+98",
+        "code": "IRN"
+      },
+      {
+        "id": "d106dd98-25c4-489d-ae37-a73bdf0b4b7d",
+        "name": "IRAQ",
+        "phoneCode": "+964",
+        "code": "IRQ"
+      },
+      {
+        "id": "43f85fba-b363-4c2e-aa27-83fb1a9da94c",
+        "name": "IRELAND",
+        "phoneCode": "+353",
+        "code": "IRL"
+      },
+      {
+        "id": "fb641517-2f85-411a-9da4-c5c12ccd89d4",
+        "name": "ISRAEL",
+        "phoneCode": "+972",
+        "code": "ISR"
+      },
+      {
+        "id": "a24388f2-c0a5-4807-894c-de6823a79a3f",
+        "name": "ITALY",
+        "phoneCode": "+39",
+        "code": "ITA"
+      },
+      {
+        "id": "7dc9c73c-4c60-4ebc-bd41-13010e8c2952",
+        "name": "IVORY COAST",
+        "phoneCode": "+225",
+        "code": "CIV"
+      },
+      {
+        "id": "652d4cc5-c90a-44d0-866e-94167c3dbd3b",
+        "name": "JAMAICA",
+        "phoneCode": "+1",
+        "code": "JAM"
+      },
+      {
+        "id": "1beaa902-fae3-4733-984d-437375211a3d",
+        "name": "JAPAN",
+        "phoneCode": "+81",
+        "code": "JPN"
+      },
+      {
+        "id": "4c108286-8eb9-48dc-9590-4a0a3cfe2b40",
+        "name": "JORDAN",
+        "phoneCode": "+962",
+        "code": "JOR"
+      },
+      {
+        "id": "4f68af57-24fc-4da3-9524-5a344f7ade7d",
+        "name": "KAZAKHSTAN",
+        "phoneCode": "+7",
+        "code": "KAZ"
+      },
+      {
+        "id": "009337db-a9ad-43af-b823-c95aca6798b9",
+        "name": "KENYA",
+        "phoneCode": "+254",
+        "code": "KEN"
+      },
+      {
+        "id": "e8db8ddf-218a-407d-8065-485693228e9e",
+        "name": "KIRIBATI",
+        "phoneCode": "+686",
+        "code": "KIR"
+      },
+      {
+        "id": "6d8dc2ec-dbc0-4416-a3e1-553935ee4f23",
+        "name": "KUWAIT",
+        "phoneCode": "+965",
+        "code": "KWT"
+      },
+      {
+        "id": "6214e7cd-b344-4698-ae88-d32b80cc26f3",
+        "name": "KYRGYZSTAN",
+        "phoneCode": "+996",
+        "code": "KGZ"
+      },
+      {
+        "id": "af83f9ed-713c-4ae6-a588-c3c79fe58d44",
+        "name": "LATVIA",
+        "phoneCode": "+371",
+        "code": "LVA"
+      },
+      {
+        "id": "477fc793-7ad7-4955-af53-09d9ffd197b8",
+        "name": "LEBANON",
+        "phoneCode": "+961",
+        "code": "LBN"
+      },
+      {
+        "id": "ceef5a50-b212-4f03-b132-1db4fa3ee8d9",
+        "name": "LESOTHO",
+        "phoneCode": "+266",
+        "code": "LSO"
+      },
+      {
+        "id": "7be4b3a3-04c1-4a69-ad85-7cce8f53217f",
+        "name": "LIBERIA",
+        "phoneCode": "+231",
+        "code": "LBR"
+      },
+      {
+        "id": "a6f469cc-61ca-4640-a200-350e33630a7a",
+        "name": "LIBYA",
+        "phoneCode": "+218",
+        "code": "LBY"
+      },
+      {
+        "id": "97dc8df9-6382-47c4-abcb-af92e0833ab3",
+        "name": "LIECHTENSTEIN",
+        "phoneCode": "+423",
+        "code": "LIE"
+      },
+      {
+        "id": "f0127376-b8cc-49b6-ba94-90137d5c9912",
+        "name": "LITHUANIA",
+        "phoneCode": "+370",
+        "code": "LTU"
+      },
+      {
+        "id": "b2ac4801-ca60-4fd1-9a09-9de023939a17",
+        "name": "LUXEMBOURG",
+        "phoneCode": "+352",
+        "code": "LUX"
+      },
+      {
+        "id": "63ad0853-32f7-444a-94d3-1db1515f6411",
+        "name": "MACAO SAR",
+        "phoneCode": "+853",
+        "code": "MAC"
+      },
+      {
+        "id": "ca2e8749-8c9c-48ea-8dbe-1d3733ffaf70",
+        "name": "MACEDONIA",
+        "phoneCode": "+389",
+        "code": "MKD"
+      },
+      {
+        "id": "22f9fd8e-f208-49c9-8afd-968066319f12",
+        "name": "MADAGASCAR",
+        "phoneCode": "+261",
+        "code": "MDG"
+      },
+      {
+        "id": "d2a7beda-5424-4d51-ae10-f37ca2f470c5",
+        "name": "MALAWI",
+        "phoneCode": "+265",
+        "code": "MWI"
+      },
+      {
+        "id": "18ea95db-04a0-4564-a871-2d89bf9b6bd5",
+        "name": "MALAYSIA",
+        "phoneCode": "+60",
+        "code": "MYS"
+      },
+      {
+        "id": "96304e76-87c2-4ea2-979d-d1dd0a3a8e09",
+        "name": "MALDIVES",
+        "phoneCode": "+960",
+        "code": "MDV"
+      },
+      {
+        "id": "5e7032d6-4a29-412a-b1f0-6a88556862be",
+        "name": "MALI",
+        "phoneCode": "+223",
+        "code": "MLI"
+      },
+      {
+        "id": "71757f61-a945-4ab0-bccd-3eba9e29ce9b",
+        "name": "MALTA",
+        "phoneCode": "+356",
+        "code": "MLT"
+      },
+      {
+        "id": "16826ffe-2e3e-4e26-89a5-2b18b17b61ab",
+        "name": "MARSHALL ISLANDS",
+        "phoneCode": "+692",
+        "code": "MHL"
+      },
+      {
+        "id": "b42a1a3a-0b9d-4aea-b586-0d1174ee186b",
+        "name": "MARTINIQUE",
+        "phoneCode": "+596",
+        "code": "MTQ"
+      },
+      {
+        "id": "b5ec75db-b92d-4b7e-ad2b-d97d132d00cb",
+        "name": "MAURITANIA",
+        "phoneCode": "+222",
+        "code": "MRT"
+      },
+      {
+        "id": "a8c9190a-f11a-42f6-914e-32907a9b8c50",
+        "name": "MAURITIUS",
+        "phoneCode": "+230",
+        "code": "MUS"
+      },
+      {
+        "id": "89b96bc1-e4ee-433c-953a-d5c5316ad3d8",
+        "name": "MEXICO",
+        "phoneCode": "+52",
+        "code": "MEX"
+      },
+      {
+        "id": "a44b74e8-c562-4890-bc31-41aa2dc81bad",
+        "name": "MICRONESIA",
+        "phoneCode": "+691",
+        "code": "FSM"
+      },
+      {
+        "id": "e8548c39-a894-4283-8792-1c54b601bd13",
+        "name": "MOLDOVA REPUBLIC",
+        "phoneCode": "+373",
+        "code": "MDA"
+      },
+      {
+        "id": "c17c385d-793f-42bf-be59-dd910d88e345",
+        "name": "MONACO",
+        "phoneCode": "+377",
+        "code": "MCO"
+      },
+      {
+        "id": "c9464187-3364-4455-9637-a4801beb1293",
+        "name": "MONGOLIA",
+        "phoneCode": "+976",
+        "code": "MNG"
+      },
+      {
+        "id": "b12556a9-7ee3-43b8-8630-7b99643d2419",
+        "name": "MONTENEGRO",
+        "phoneCode": "+382",
+        "code": "MNE"
+      },
+      {
+        "id": "c3243433-9264-4e49-964b-478fa69ca1b2",
+        "name": "MONTSERRAT",
+        "phoneCode": "+1",
+        "code": "MSR"
+      },
+      {
+        "id": "ae28d967-9143-4a3c-88c9-32ecda8a5f14",
+        "name": "MOROCCO",
+        "phoneCode": "+212",
+        "code": "MAR"
+      },
+      {
+        "id": "aa50af6e-ffda-421a-8b07-bbd8376ffcbe",
+        "name": "MOZAMBIQUE",
+        "phoneCode": "+258",
+        "code": "MOZ"
+      },
+      {
+        "id": "63419316-d037-4edc-ab35-d3bd8da1487c",
+        "name": "MYANMAR",
+        "phoneCode": "+95",
+        "code": "MMR"
+      },
+      {
+        "id": "bb48769c-3071-42bb-813e-645f18b1ff0b",
+        "name": "NAMIBIA",
+        "phoneCode": "+264",
+        "code": "NAM"
+      },
+      {
+        "id": "6039f928-3802-4d23-a715-694f48fcbce3",
+        "name": "NAURU",
+        "phoneCode": "+674",
+        "code": "NRU"
+      },
+      {
+        "id": "8da9858f-bdf2-4b6b-9429-238ebec039dd",
+        "name": "NEPAL",
+        "phoneCode": "+977",
+        "code": "NPL"
+      },
+      {
+        "id": "220ac96a-b9c9-4f77-8711-677004adaee2",
+        "name": "NETHERLANDS",
+        "phoneCode": "+31",
+        "code": "NLD"
+      },
+      {
+        "id": "58a3d993-cd92-43d7-a52d-696b5080d8aa",
+        "name": "NETHERLANDSE ANTILLES",
+        "phoneCode": "+599",
+        "code": "ANT"
+      },
+      {
+        "id": "79270a70-6cd0-44a6-9166-7db6d90c976a",
+        "name": "NEW CALEDONIA",
+        "phoneCode": "+687",
+        "code": "NCL"
+      },
+      {
+        "id": "ef268b73-8b9e-478f-a459-32058e33b1f3",
+        "name": "NEW ZEALAND",
+        "phoneCode": "+64",
+        "code": "NZL"
+      },
+      {
+        "id": "6206cd29-800f-46b1-8a8d-a8cd70123281",
+        "name": "NICARAGUA",
+        "phoneCode": "+505",
+        "code": "NIC"
+      },
+      {
+        "id": "edc16d7a-71ac-45ac-8e22-315f2ec89d96",
+        "name": "NIGER",
+        "phoneCode": "+227",
+        "code": "NER"
+      },
+      {
+        "id": "bf74cbb8-d1b6-4c04-8b55-b35b1c1a3c36",
+        "name": "NIGERIA",
+        "phoneCode": "+234",
+        "code": "NGA"
+      },
+      {
+        "id": "934a5a5c-96a6-4869-bf21-91efc2bc2de9",
+        "name": "NORTH KOREA",
+        "phoneCode": "+850",
+        "code": "PRK"
+      },
+      {
+        "id": "f565a323-3bae-4dcb-b32e-95c6f1819c0f",
+        "name": "North Macedonia",
+        "phoneCode": "+389",
+        "code": "MKD"
+      },
+      {
+        "id": "f322b0c9-61a5-4ee8-9cdb-f046a5245e6b",
+        "name": "NORWAY",
+        "phoneCode": "+47",
+        "code": "NOR"
+      },
+      {
+        "id": "6aa75c1b-e7eb-43f8-88d7-1f0ad5764b43",
+        "name": "OMAN",
+        "phoneCode": "+968",
+        "code": "OMN"
+      },
+      {
+        "id": "d6adb2da-a3d0-4143-bcc5-1651b0671851",
+        "name": "PAKISTAN",
+        "phoneCode": "+92",
+        "code": "PAK"
+      },
+      {
+        "id": "90782348-c645-4400-84cb-2c4307e2d374",
+        "name": "PALAU",
+        "phoneCode": "+680",
+        "code": "PLW"
+      },
+      {
+        "id": "e7b5ec63-4203-4668-a377-dd2b526682df",
+        "name": "PALESTINE",
+        "phoneCode": "+970",
+        "code": "PSE"
+      },
+      {
+        "id": "ec76dc7f-faca-4bfd-b76d-3de68e0cf280",
+        "name": "PANAMA",
+        "phoneCode": "+507",
+        "code": "PAN"
+      },
+      {
+        "id": "275b19e4-50a1-41c7-b6d8-cfbbdb03d046",
+        "name": "PAPUA NEW GUINEA",
+        "phoneCode": "+675",
+        "code": "PNG"
+      },
+      {
+        "id": "e58d82e1-a65c-410a-ac8a-866c6f25da9f",
+        "name": "PARAGUAY",
+        "phoneCode": "+595",
+        "code": "PRY"
+      },
+      {
+        "id": "50ebf46b-2f8e-4345-bc0c-461857b06847",
+        "name": "PEOPLE'S DEMOCRATIC REPUBLIC OF LAOS",
+        "phoneCode": "+856",
+        "code": "LAO"
+      },
+      {
+        "id": "e5f942ed-23fd-4f2d-a5d4-97399753ec08",
+        "name": "PERU",
+        "phoneCode": "+51",
+        "code": "PER"
+      },
+      {
+        "id": "8db55c27-d5c2-4cf7-bbaa-6db35fe3863d",
+        "name": "PHILIPPINES",
+        "phoneCode": "+63",
+        "code": "PHL"
+      },
+      {
+        "id": "fae13c7a-c6cb-48ea-9eeb-b622022ace25",
+        "name": "PITCAIRN",
+        "phoneCode": "+64",
+        "code": "PCN"
+      },
+      {
+        "id": "733b9eb2-8fea-49ab-9b7d-ba9d56ac0108",
+        "name": "POLAND",
+        "phoneCode": "+48",
+        "code": "POL"
+      },
+      {
+        "id": "56a88b66-0733-422d-b3cc-e04273ad84b6",
+        "name": "POLYNESIA FRENCH",
+        "phoneCode": "+689",
+        "code": "PYF"
+      },
+      {
+        "id": "2fe14725-2c04-4c6a-963c-dcde840dcfd5",
+        "name": "PORTUGAL",
+        "phoneCode": "+351",
+        "code": "PRT"
+      },
+      {
+        "id": "ff4c5ef0-b98c-4316-93a1-401d0e503d23",
+        "name": "QATAR",
+        "phoneCode": "+974",
+        "code": "QAT"
+      },
+      {
+        "id": "4f322842-9fd6-4166-a48a-79a9a3d4f78e",
+        "name": "REFUGEES (CONVENTION ARTICLE 1, 1951)",
+        "phoneCode": null,
+        "code": "XXB"
+      },
+      {
+        "id": "47a06713-9373-4392-8b9e-7c64866d6db6",
+        "name": "REFUGEES (NON CONVENTION ARTICLE 1, 1951)",
+        "phoneCode": "XXX",
+        "code": "XXC"
+      },
+      {
+        "id": "0e63775f-7370-4203-9ff4-8a7ce1b83da5",
+        "name": "REPUBLIC OF KOREA",
+        "phoneCode": "+82",
+        "code": "KOR"
+      },
+      {
+        "id": "89ee80a3-b660-44cc-b09d-9e8b02df327c",
+        "name": "REPUBLIC OF SOUTH AFRICA",
+        "phoneCode": "+27",
+        "code": "ZAF"
+      },
+      {
+        "id": "cd630114-9710-49a8-a450-9eff8b9f7966",
+        "name": "ROMANIA",
+        "phoneCode": "+40",
+        "code": "ROU"
+      },
+      {
+        "id": "c9927f33-3778-4955-a5ed-5be3fe3c2c86",
+        "name": "RUSSIA",
+        "phoneCode": "+7",
+        "code": "RUS"
+      },
+      {
+        "id": "fb80a5a2-7da4-4684-9a08-ac9935a7687c",
+        "name": "RWANDA",
+        "phoneCode": "+250",
+        "code": "RWA"
+      },
+      {
+        "id": "652bdc10-1147-4da7-b87d-0a2d87f456ff",
+        "name": "SAINT KITTS AND NEVIS",
+        "phoneCode": "+1",
+        "code": "KNA"
+      },
+      {
+        "id": "b72c2f44-6a70-44cc-92c9-e14f791ed3a0",
+        "name": "SAINT LUCIA",
+        "phoneCode": "+1",
+        "code": "LCA"
+      },
+      {
+        "id": "57c54eb4-4317-4873-b20f-9eca9db38461",
+        "name": "SAINT VINCENT AND GRENADINES",
+        "phoneCode": "+1",
+        "code": "VCT"
+      },
+      {
+        "id": "1ff2297d-ca8a-41d0-8ed3-835773306c91",
+        "name": "SAMOA",
+        "phoneCode": "+685",
+        "code": "WSM"
+      },
+      {
+        "id": "1bd460aa-a6f7-4517-b557-68c9a5c4b575",
+        "name": "SAN MARINO",
+        "phoneCode": "+378",
+        "code": "SMR"
+      },
+      {
+        "id": "a6945046-ca8d-4df0-9d85-76605233e7cd",
+        "name": "SAO TOME AND PRINCIPE",
+        "phoneCode": "+239",
+        "code": "STP"
+      },
+      {
+        "id": "36cb6d47-cfd4-42a0-ac3d-398d76f932c3",
+        "name": "SAUDI ARABIA",
+        "phoneCode": "+966",
+        "code": "SAU"
+      },
+      {
+        "id": "02b4584f-7c26-4b8f-8d07-7d79552045a7",
+        "name": "SENEGAL",
+        "phoneCode": "+221",
+        "code": "SEN"
+      },
+      {
+        "id": "77514d20-e823-4134-9be1-663279285570",
+        "name": "SERBIA",
+        "phoneCode": "+381",
+        "code": "SRB"
+      },
+      {
+        "id": "9a5bf6eb-bdd3-46ce-9298-325ee83c6e8a",
+        "name": "SEYCHELLES",
+        "phoneCode": "+248",
+        "code": "SYC"
+      },
+      {
+        "id": "536c5bbc-9d92-4831-856f-0b4183866560",
+        "name": "SIERRA LEONE",
+        "phoneCode": "+232",
+        "code": "SLE"
+      },
+      {
+        "id": "76f0332d-ff00-4e69-acda-73d153c6ce66",
+        "name": "SINGAPORE",
+        "phoneCode": "+65",
+        "code": "SGP"
+      },
+      {
+        "id": "2c48b68b-5184-4d9f-9635-b4376855f832",
+        "name": "SLOVAKIA",
+        "phoneCode": "+421",
+        "code": "SVK"
+      },
+      {
+        "id": "95c29f1b-464b-4985-b5f2-9589e977cd65",
+        "name": "SLOVENIA",
+        "phoneCode": "+386",
+        "code": "SVN"
+      },
+      {
+        "id": "a6cc707d-cb28-4fff-aca0-8d7cb53e003b",
+        "name": "SOLOMON ISLANDS",
+        "phoneCode": "+677",
+        "code": "SLB"
+      },
+      {
+        "id": "fad95e6e-f5ee-4645-996e-07b7221624dc",
+        "name": "SOMALIA",
+        "phoneCode": "+252",
+        "code": "SOM"
+      },
+      {
+        "id": "4a72d20d-8764-4f24-a6c5-5733637e0947",
+        "name": "SOUTH SUDAN",
+        "phoneCode": "+211",
+        "code": "SSD"
+      },
+      {
+        "id": "a7391e9c-7a1f-4184-bb40-b8d82b001643",
+        "name": "SPAIN",
+        "phoneCode": "+34",
+        "code": "ESP"
+      },
+      {
+        "id": "c0d856c9-bac0-4566-aeb6-db30d16b611c",
+        "name": "SRI LANKA",
+        "phoneCode": "+94",
+        "code": "LKA"
+      },
+      {
+        "id": "f5d95a4d-2857-44fe-a124-1c041aab463a",
+        "name": "SUDAN",
+        "phoneCode": "+249",
+        "code": "SDN"
+      },
+      {
+        "id": "0697ba08-aea2-40cb-b54a-4dddf66cc568",
+        "name": "SURINAME",
+        "phoneCode": "+597",
+        "code": "SUR"
+      },
+      {
+        "id": "aef055ad-cac8-4258-8ce5-fdf9215c408d",
+        "name": "SWAZILAND",
+        "phoneCode": "+268",
+        "code": "SWZ"
+      },
+      {
+        "id": "5285ce98-204f-42c7-9a8b-0ce793992540",
+        "name": "SWEDEN",
+        "phoneCode": "+46",
+        "code": "SWE"
+      },
+      {
+        "id": "4b8a01ac-ebac-4157-ba96-52a42452b8fc",
+        "name": "SWITZERLAND",
+        "phoneCode": "+41",
+        "code": "CHE"
+      },
+      {
+        "id": "a4c2a6b9-599e-4f32-a2cb-a7a8c419d3fd",
+        "name": "SYRIA",
+        "phoneCode": "+963",
+        "code": "SYR"
+      },
+      {
+        "id": "cab7f051-6e1e-40e8-bc1d-304c7d718205",
+        "name": "TAIWAN",
+        "phoneCode": "+886",
+        "code": "TWN"
+      },
+      {
+        "id": "4e06dd54-cb40-4689-ba37-d52ee18b6232",
+        "name": "TAJIKISTAN",
+        "phoneCode": "+992",
+        "code": "TJK"
+      },
+      {
+        "id": "781d5b7f-8d72-4ab6-bb85-9d84c7002655",
+        "name": "TANZANIA",
+        "phoneCode": "+255",
+        "code": "TZA"
+      },
+      {
+        "id": "568938de-3757-4038-ab10-9515de53dcde",
+        "name": "THAILAND",
+        "phoneCode": "+66",
+        "code": "THA"
+      },
+      {
+        "id": "92991bf5-3eb4-4bcd-a9cd-eb3791f61855",
+        "name": "TIMOR LESTE",
+        "phoneCode": "+670",
+        "code": "TLS"
+      },
+      {
+        "id": "4472c324-c691-41ef-993f-1fdc68bdaeb4",
+        "name": "TOGO",
+        "phoneCode": "+228",
+        "code": "TGO"
+      },
+      {
+        "id": "176b7997-cf5d-411c-a018-35cc462ff214",
+        "name": "TOKELAU",
+        "phoneCode": "+690",
+        "code": "TKL"
+      },
+      {
+        "id": "5da97514-d2f2-49e2-8b3c-c2cd837076c9",
+        "name": "TONGA",
+        "phoneCode": "+676",
+        "code": "TON"
+      },
+      {
+        "id": "7052f57f-ed0f-4af7-a2bd-c56add55c58b",
+        "name": "TRINIDAD AND TOBAGO",
+        "phoneCode": "+1",
+        "code": "TTO"
+      },
+      {
+        "id": "d43d13b8-c1f6-4b99-96fc-46f8566cf2f8",
+        "name": "TUNISIA",
+        "phoneCode": "+216",
+        "code": "TUN"
+      },
+      {
+        "id": "ef010e72-e3d1-47af-81eb-c801725dfd56",
+        "name": "TURKIYE",
+        "phoneCode": "+90",
+        "code": "TUR"
+      },
+      {
+        "id": "d86a010c-3d78-4e3c-a0a2-a8c28ba2faa5",
+        "name": "TURKMENISTAN",
+        "phoneCode": "+993",
+        "code": "TKM"
+      },
+      {
+        "id": "0fe8945a-3d4b-4f2b-81be-50211982d6d6",
+        "name": "TUVALU",
+        "phoneCode": "+688",
+        "code": "TUV"
+      },
+      {
+        "id": "77291ff1-eab3-4a48-b4f8-a554edb33c54",
+        "name": "UGANDA",
+        "phoneCode": "+256",
+        "code": "UGA"
+      },
+      {
+        "id": "e01dfda0-5841-4395-8073-995bac33530c",
+        "name": "UKRAINE",
+        "phoneCode": "+380",
+        "code": "UKR"
+      },
+      {
+        "id": "97ed438c-9faf-4f9c-a407-72e3718ca022",
+        "name": "UNITED ARAB EMIRATES",
+        "phoneCode": "+971",
+        "code": "ARE"
+      },
+      {
+        "id": "94ce109e-b072-4229-9285-cf9cacc8fb2d",
+        "name": "UNITED KINGDOM - BRITISH CITIZEN",
+        "phoneCode": "+44",
+        "code": "GBR"
+      },
+      {
+        "id": "c51ba964-c230-4826-a1d8-3cfad5bb0399",
+        "name": "UNITED KINGDOM - BRITISH INDIAN OCEAN TERRITORY",
+        "phoneCode": "+246",
+        "code": "IOT"
+      },
+      {
+        "id": "ce4f1b79-54ee-4690-adcd-81c58eabb966",
+        "name": "UNITED KINGDOM - BRITISH NATIONALITY OVERSEAS",
+        "phoneCode": "+44",
+        "code": "GBN"
+      },
+      {
+        "id": "87a991cb-73cb-4c99-b663-2ef257e2f6b1",
+        "name": "UNITED KINGDOM - BRITISH OVERSEAS CITIZEN",
+        "phoneCode": "+44",
+        "code": "GBO"
+      },
+      {
+        "id": "96d8e937-6bd6-4ef8-a347-7d24854f5575",
+        "name": "UNITED KINGDOM - BRITISH OVERSEAS TERRITORIES CITIZEN",
+        "phoneCode": "+44",
+        "code": "GBD"
+      },
+      {
+        "id": "47abd687-fcad-4d49-96ae-522a9d5fd67b",
+        "name": "UNITED KINGDOM - BRITISH PROTECTED PERSON",
+        "phoneCode": "+44",
+        "code": "GBP"
+      },
+      {
+        "id": "864e7171-3d6c-4d8c-8b47-9137dee08ad1",
+        "name": "UNITED KINGDOM - BRITISH SUBJECT",
+        "phoneCode": "+44",
+        "code": "GBS"
+      },
+      {
+        "id": "aa7dbe3c-db97-4c5b-9a69-67b6e3e72d0a",
+        "name": "UNITED NATIONS",
+        "phoneCode": null,
+        "code": "UNO"
+      },
+      {
+        "id": "9b23d98e-5f93-47c0-bc86-7c01185dc7a7",
+        "name": "UNITED STATES OF AMERICA",
+        "phoneCode": "+1",
+        "code": "USA"
+      },
+      {
+        "id": "11c74c93-1660-4ada-afd2-32ba5c8531de",
+        "name": "UNSPECIFIED NATIONALITY",
+        "phoneCode": "000",
+        "code": "XXX"
+      },
+      {
+        "id": "2b5383fd-857a-4d13-9da2-6cc8817d94e4",
+        "name": "URUGUAY",
+        "phoneCode": "+598",
+        "code": "URY"
+      },
+      {
+        "id": "78743012-4d5f-499c-b1f7-87a30df735f9",
+        "name": "UZBEKISTAN",
+        "phoneCode": "+998",
+        "code": "UZB"
+      },
+      {
+        "id": "402de03b-eba7-4fca-ab14-5a1c8efeeec7",
+        "name": "VANUATU",
+        "phoneCode": "+678",
+        "code": "VUT"
+      },
+      {
+        "id": "41b2e501-26aa-4787-97fa-56af1e94b82c",
+        "name": "VENEZUELA",
+        "phoneCode": "+58",
+        "code": "VEN"
+      },
+      {
+        "id": "e3838f92-2f1d-449c-b6b8-76b089027f0a",
+        "name": "VIETNAM",
+        "phoneCode": "+84",
+        "code": "VNM"
+      },
+      {
+        "id": "60bef538-a6cd-4a75-9187-b74d247bcfec",
+        "name": "VIRGIN ISLANDS (UNITED STATES OF AMERICA)",
+        "phoneCode": "+1",
+        "code": "VIR"
+      },
+      {
+        "id": "2781ca6c-143b-4a52-8dcc-89c7dc398147",
+        "name": "VIRGINS ISLANDS (UNITED KINGDOM)",
+        "phoneCode": "+1",
+        "code": "VGB"
+      },
+      {
+        "id": "b805f46e-31a9-4ba7-8e87-c093af0b2ba0",
+        "name": "WITHOUT CITIZENSHIP (STATELESS, TH 1954 CONVENTION ARTICLE 1)",
+        "phoneCode": "+",
+        "code": "XXA"
+      },
+      {
+        "id": "e8324fd1-9cee-4772-97af-651408c0bab9",
+        "name": "YEMEN",
+        "phoneCode": "+967",
+        "code": "YEM"
+      },
+      {
+        "id": "16543ea3-11bd-4551-9d9e-44abbec77c25",
+        "name": "ZAMBIA",
+        "phoneCode": "+260",
+        "code": "ZMB"
+      },
+      {
+        "id": "e0ea4fa1-498e-4d95-89eb-24415907dcab",
+        "name": "ZIMBABWE",
+        "phoneCode": "+263",
+        "code": "ZWE"
+      }
+    ]
+  }
+}

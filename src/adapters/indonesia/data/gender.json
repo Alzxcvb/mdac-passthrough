@@ -1,0 +1,19 @@
+{
+  "responseCode": "00",
+  "responseTitle": null,
+  "responseDesc": "Success",
+  "transactionDetail": {
+    "data": [
+      {
+        "id": "1",
+        "name": "MALE",
+        "code": "M"
+      },
+      {
+        "id": "2",
+        "name": "FEMALE",
+        "code": "F"
+      }
+    ]
+  }
+}

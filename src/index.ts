@@ -3,9 +3,11 @@ import cors from "cors";
 import submitRouter from "./routes/submit";
 import retrieveRouter from "./routes/retrieve";
 import sessionRouter from "./routes/session";
+import indonesiaSessionRouter from "./routes/indonesia-session";
 import autoSubmitRouter from "./routes/auto-submit";
 import telemetryRouter from "./routes/telemetry";
 import { sessionManager } from "./services/session-manager";
+import { indonesiaSessionManager } from "./services/indonesia-session-manager";
 import { jobManager } from "./services/job-manager";
 import { telemetryStore } from "./services/telemetry-store";
 
@@ -39,6 +41,7 @@ app.get("/health", (_req, res) => {
   res.status(200).json({
     status: "ok",
     activeSessions: sessionManager.activeCount,
+    activeIdSessions: indonesiaSessionManager.activeCount,
     activeJobs: jobManager.activeCount,
     telemetrySessions: telemetryStore.sessionCount,
     timestamp: new Date().toISOString(),
@@ -49,6 +52,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/submit", submitRouter);
 app.use("/api/retrieve-qr", retrieveRouter);
 app.use("/api/session", sessionRouter);
+app.use("/api/id-session", indonesiaSessionRouter);
 app.use("/api", autoSubmitRouter);
 app.use("/api", telemetryRouter);
 
@@ -65,6 +69,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 // Start cleanup loops
 sessionManager.startCleanup();
+indonesiaSessionManager.startCleanup();
 jobManager.startCleanup();
 telemetryStore.startCleanup();
 

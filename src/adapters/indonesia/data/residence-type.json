@@ -1,0 +1,24 @@
+{
+  "responseCode": "00",
+  "responseTitle": null,
+  "responseDesc": "Success",
+  "transactionDetail": {
+    "data": [
+      {
+        "id": "1",
+        "name": "RESIDENTIAL",
+        "code": "R"
+      },
+      {
+        "id": "2",
+        "name": "HOTEL",
+        "code": "H"
+      },
+      {
+        "id": "3",
+        "name": "OTHERS",
+        "code": "O"
+      }
+    ]
+  }
+}

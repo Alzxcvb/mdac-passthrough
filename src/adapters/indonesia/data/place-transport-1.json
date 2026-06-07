@@ -1,0 +1,157 @@
+{
+  "responseCode": "00",
+  "responseTitle": null,
+  "responseDesc": "Success",
+  "transactionDetail": {
+    "data": [
+      {
+        "id": "277",
+        "name": "CGK - SOEKARNO-HATTA AIRPORT"
+      },
+      {
+        "id": "266",
+        "name": "DPS - I GUSTI NGURAH RAI AIRPORT"
+      },
+      {
+        "id": "257",
+        "name": "SUB - JUANDA AIRPORT"
+      },
+      {
+        "id": "253",
+        "name": "KNO - KUALANAMU AIRPORT"
+      },
+      {
+        "id": "240",
+        "name": "SOC - ADI SOEMARMO AIRPORT"
+      },
+      {
+        "id": "241",
+        "name": "SRG - AHMAD YANI AIRPORT"
+      },
+      {
+        "id": "288",
+        "name": "AAP - AJI PANGERAN TUMENGGUNG PRANOTO AIRPORT"
+      },
+      {
+        "id": "242",
+        "name": "BWX - BANYUWANGI AIRPORT"
+      },
+      {
+        "id": "289",
+        "name": "BTW - BERSUJUD AIRPORT"
+      },
+      {
+        "id": "287",
+        "name": "SOQ - DOMINE EDWARD OSOK AIRPORT"
+      },
+      {
+        "id": "252",
+        "name": "KOE - EL TARI AIRPORT"
+      },
+      {
+        "id": "246",
+        "name": "BIK - FRANS KAISIEPO AIRPORT"
+      },
+      {
+        "id": "247",
+        "name": "HLP - HALIM PERDANAKUSUMA AIRPORT"
+      },
+      {
+        "id": "248",
+        "name": "BTH - HANG NADIM AIRPORT"
+      },
+      {
+        "id": "250",
+        "name": "TJQ - H.A.S. HANANDJOEDDIN AIRPORT"
+      },
+      {
+        "id": "258",
+        "name": "TRK - JUWATA AIRPORT"
+      },
+      {
+        "id": "243",
+        "name": "DHX - KEDIRI AIRPORT"
+      },
+      {
+        "id": "259",
+        "name": "KJT - KERTAJATI AIRPORT"
+      },
+      {
+        "id": "256",
+        "name": "LBJ - KOMODO AIRPORT"
+      },
+      {
+        "id": "255",
+        "name": "YIA - KULON PROGO AIRPORT"
+      },
+      {
+        "id": "263",
+        "name": "PDG - MINANGKABAU AIRPORT"
+      },
+      {
+        "id": "264",
+        "name": "MKQ - MOPAH AIRPORT"
+      },
+      {
+        "id": "286",
+        "name": "PLW - MUTIARA SIS AL JUFRI AIRPORT"
+      },
+      {
+        "id": "267",
+        "name": "AMQ - PATTIMURA AIRPORT"
+      },
+      {
+        "id": "269",
+        "name": "TKG - RADIN INTEN II AIRPORT"
+      },
+      {
+        "id": "270",
+        "name": "TNJ - RAJA HAJI FISABILILLAH AIRPORT"
+      },
+      {
+        "id": "276",
+        "name": "DTB - RAJA SISINGAMANGARAJA XII AIRPORT"
+      },
+      {
+        "id": "272",
+        "name": "MDC - SAM RATULANGI AIRPORT"
+      },
+      {
+        "id": "254",
+        "name": "DJJ - SENTANI AIRPORT"
+      },
+      {
+        "id": "274",
+        "name": "BPN - SULTAN AJI MUHAMMAD SULAIMAN AIRPORT"
+      },
+      {
+        "id": "278",
+        "name": "UPG - SULTAN HASANUDDIN AIRPORT"
+      },
+      {
+        "id": "279",
+        "name": "BTJ - SULTAN ISKANDAR MUDA AIRPORT"
+      },
+      {
+        "id": "280",
+        "name": "PLM - SULTAN MAHMUD BADARUDDIN II AIRPORT"
+      },
+      {
+        "id": "281",
+        "name": "PKU - SULTAN SYARIF KASIM II AIRPORT"
+      },
+      {
+        "id": "282",
+        "name": "PNK - SUPADIO AIRPORT"
+      },
+      {
+        "id": "283",
+        "name": "BDJ - SYAMSUDIN NOOR AIRPORT"
+      },
+      {
+        "id": "284",
+        "name": "LOP - ZAINUDDIN ABDUL MAJID AIRPORT"
+      }
+    ]
+  }
+}

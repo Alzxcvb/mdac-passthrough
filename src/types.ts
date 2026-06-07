@@ -82,3 +82,41 @@ export interface CaptchaSolveResponse {
   newCaptchaWidth?: number;
   newCaptchaHeight?: number;
 }
+
+// ---- Indonesia session-relay types ----
+//
+// Indonesia's captcha is machine-solvable (JWT-decoded), so the human's
+// contribution shifts from "solve captcha" (MDAC) to "review + authorize the
+// final submit". The server fills steps 1-3 + the declaration, screenshots the
+// summary, and waits for the user to authorize before clicking Submit.
+
+export type IndonesiaSessionStatusValue =
+  | "filling"        // server is driving steps 1-3 + declaration
+  | "waiting_review" // filled; screenshot ready, awaiting user authorization
+  | "submitting"     // user authorized; clicking final Submit
+  | "submitted"      // QR available
+  | "blocked"        // submit gated on the recon pass (INDONESIA_LIVE_SUBMIT)
+  | "error"
+  | "expired";
+
+export interface IndonesiaSessionStartResponse {
+  sessionId: string;
+  submissionId: string;
+  /** Full-page screenshot of the filled declaration page for user review. */
+  reviewImageBase64: string;
+}
+
+export interface IndonesiaConfirmResponse {
+  success: boolean;
+  status: IndonesiaSessionStatusValue;
+  /** Present when status === "submitted". */
+  qrUrl?: string;
+  /** Honest message when status === "blocked" (recon pass pending). */
+  message?: string;
+  error?: string;
+}
+
+export interface IndonesiaSessionStatus {
+  status: IndonesiaSessionStatusValue;
+  error?: string;
+}
