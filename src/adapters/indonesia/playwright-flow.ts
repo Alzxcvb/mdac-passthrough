@@ -12,7 +12,7 @@
 import { chromium, type Browser, type Page, type BrowserContext } from "playwright";
 import type { ArrivalPassTraveler } from "./types";
 import {
-  countryByIso3, airportByIata, provinceByName, purposeByCode, residenceByCode,
+  countryByIso3, airportByIata, airlineByIata, provinceByName, purposeByCode, residenceByCode,
 } from "./data";
 import { generateSubmissionId } from "./submission-id";
 import { generateCaptcha } from "./captcha";
@@ -74,6 +74,68 @@ export async function submitIndonesia(
 }
 
 /**
+ * Recon aid: when INDONESIA_RECON_DEBUG=1, screenshot the page and log the URL.
+ * No-op in normal operation. Used to diagnose selector/flow drift on the live
+ * form without a visible browser.
+ */
+async function reconShot(page: Page, label: string): Promise<void> {
+  if (process.env.INDONESIA_RECON_DEBUG !== "1") return;
+  try {
+    await page.screenshot({ path: `/tmp/claude/id-recon/${label}.png`, fullPage: true });
+    console.log(`[id-recon] ${label}: ${page.url()}`);
+  } catch (e) {
+    console.log(`[id-recon] ${label}: screenshot failed — ${(e as Error).message}`);
+  }
+}
+
+/**
+ * Click "Next" and wait for the expected step URL. On timeout (a required field
+ * blocked the step) capture the stuck page + any on-screen validation errors
+ * when recon-debug is on, then rethrow so the failure is visible.
+ */
+async function nextAndWait(page: Page, urlRe: RegExp, label: string): Promise<void> {
+  await clickByText(page, "Next");
+  try {
+    await page.waitForURL(urlRe, { timeout: 15_000 });
+  } catch (e) {
+    if (process.env.INDONESIA_RECON_DEBUG === "1") {
+      // Capture the stuck state: screenshot + every control's value (so a
+      // genuinely-empty required field is visible) + any inline error text.
+      await page.screenshot({ path: `/tmp/claude/id-recon/STUCK-${label}.png`, fullPage: true }).catch(() => {});
+      const dump = await page
+        .evaluate(() => {
+          const fields = [...document.querySelectorAll("input,textarea")].map((e) => ({
+            id: (e as HTMLInputElement).id,
+            ph: e.getAttribute("placeholder"),
+            v: (e as HTMLInputElement).value,
+          }));
+          const errs = [...document.querySelectorAll("p,span,div")]
+            .map((n) => (n.childElementCount === 0 ? (n.textContent || "").trim() : ""))
+            .filter((t) => /required|cannot be empty|must be|invalid/i.test(t) && t.length < 80);
+          return { fields, errs: [...new Set(errs)] };
+        })
+        .catch(() => ({ fields: [], errs: [] }));
+      console.log(`[id-recon] STUCK at ${label} url=${page.url()}`);
+      console.log(`[id-recon] STUCK errs=${JSON.stringify(dump.errs)}`);
+      console.log(`[id-recon] STUCK fields=${JSON.stringify(dump.fields)}`);
+    }
+    throw e;
+  }
+}
+
+/** Poll until the field at `selector` has a non-empty value (for cascade-derived
+ *  fields like the immigration office that populate async after a pick). */
+async function waitForValue(page: Page, selector: string, timeoutMs = 8_000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const v = await page.locator(selector).first().inputValue().catch(() => "");
+    if (v && v.trim()) return true;
+    if (Date.now() > deadline) return false;
+    await page.waitForTimeout(200);
+  }
+}
+
+/**
  * Phase 1 of the session-relay: drive the form from landing through the
  * declaration step (steps 1-3 + declaration fills + JWT captcha decode),
  * stopping BEFORE the final Submit. Operates on a caller-owned `page` so a
@@ -84,29 +146,40 @@ export async function fillIndonesiaToDeclaration(
   page: Page,
   traveler: ArrivalPassTraveler,
 ): Promise<void> {
-  // 1. Land on Foreign Visitor flow.
-  await page.goto(`${ORIGIN}/`);
+  // 1. Land, switch to English, then enter the Foreign Visitor flow. The
+  //    landing is a React SPA that defaults to Indonesian and renders the
+  //    entry cards after hydration — wait for networkidle before clicking.
+  await page.goto(`${ORIGIN}/`, { waitUntil: "networkidle" });
+  await switchToEnglish(page);
   await clickByText(page, "Foreign Visitor");
   await page.waitForURL(/personal-information/, { timeout: 15_000 });
+  // The step-1 form mounts behind a loading spinner while it fetches config /
+  // the country list. Filling the first field (nationality) before that clears
+  // silently fails — wait for the data load to settle first.
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.waitForTimeout(1200);
+  await reconShot(page, "1-personal-blank");
 
   // 2. Step 1: Personal Information + Account Information.
   await fillStep1(page, traveler);
-  await clickByText(page, "Next");
-  await page.waitForURL(/travel-details/, { timeout: 15_000 });
+  await reconShot(page, "2-personal-filled");
+  await nextAndWait(page, /travel-details/, "step1");
 
   // 3. Step 2: Travel Details.
   await fillStep2(page, traveler);
-  await clickByText(page, "Next");
-  await page.waitForURL(/mode-of-transport/, { timeout: 15_000 });
+  await reconShot(page, "3-travel-filled");
+  await nextAndWait(page, /mode-of-transport/, "step2");
 
   // 4. Step 3: Mode of Transport + Address.
   await fillStep3(page, traveler);
-  await clickByText(page, "Next");
-  await page.waitForURL(/declaration/, { timeout: 15_000 });
+  await reconShot(page, "4-transport-filled");
+  await nextAndWait(page, /declaration/, "step3");
 
   // 5. Step 4: Declaration. CAPTCHA bypass via JWT-decoded code.
+  await reconShot(page, "5-declaration-blank");
   const captcha = await generateCaptcha();
   await fillStep4(page, traveler, captcha.captchaCode);
+  await reconShot(page, "6-declaration-filled");
 }
 
 /**
@@ -206,8 +279,9 @@ async function fillStep1(page: Page, t: ArrivalPassTraveler) {
 }
 
 async function fillStep2(page: Page, t: ArrivalPassTraveler) {
-  // Arrival date — virtuoso bottom-sheet, items "DD MMM YYYY" uppercase.
-  const arr = isoToDdMmmYyyy(t.arrivalDate);
+  // Arrival date — virtuoso list, rows are "DD MONTH YYYY" (full month name,
+  // uppercase, e.g. "01 JULY 2026"). No search box, so pickFromVirtuoso scrolls.
+  const arr = isoToDdMonthYyyy(t.arrivalDate);
   await pickFromVirtuoso(page, "#std_arrival_date_foreigner_individual", arr);
 
   // Departure — typeable.
@@ -240,14 +314,47 @@ async function fillStep3(page: Page, t: ArrivalPassTraveler) {
 
   // Flight Name — pick airline by IATA (after cascade fires).
   await page.waitForTimeout(800);
-  if (t.indonesia?.flightIata) {
-    // Open and search-then-pick.
-    // TODO: implement search + pick — virtuoso typeahead.
+  if (process.env.INDONESIA_RECON_DEBUG === "1") {
+    const f = await page.evaluate(() =>
+      [...document.querySelectorAll("input,textarea")].map((e) => {
+        let lbl = ""; let p: HTMLElement | null = (e as HTMLElement).closest("div");
+        for (let i = 0; i < 4 && p; i++, p = p.parentElement) {
+          const l = p.querySelector("label,p,span,h4");
+          if (l && (l.textContent || "").trim()) { lbl = (l.textContent || "").trim().slice(0, 40); break; }
+        }
+        return { id: (e as HTMLInputElement).id, ph: e.getAttribute("placeholder"), ro: (e as HTMLInputElement).readOnly, label: lbl };
+      }),
+    );
+    console.log("[id-recon] step3 fields:", JSON.stringify(f));
   }
+  // The form splits the flight into three fields: Flight Name (airline picker),
+  // Code (airline IATA prefix, e.g. "GA"), and Flight Number (digits, e.g.
+  // "880"). Parse "GA880" into prefix + digits; prefer an explicit flightIata.
+  const rawFlight = (t.indonesia?.flightNumber || "").toUpperCase().replace(/\s+/g, "");
+  const m = rawFlight.match(/^([A-Z0-9]{2,3}?)(\d+)$/);
+  const flightPrefix = (t.indonesia?.flightIata || (m ? m[1] : "")).toUpperCase();
+  const flightDigits = m ? m[2] : rawFlight.replace(/^[A-Z0-9]{2,3}/, "");
 
-  // Flight Number
-  if (t.indonesia?.flightNumber) {
-    await page.fill("#smta_flight_no_foreigner", t.indonesia.flightNumber);
+  if (flightPrefix) {
+    const airline = airlineByIata(flightPrefix);
+    if (airline) {
+      await pickFromVirtuoso(page, "#smta_flight_name_foreigner", airline.name);
+      // The Code prefix is auto-populated by the airline selection — but async.
+      // Wait for it to commit before moving on (clicking Next before the cascade
+      // lands trips a phantom "required" error even though the field shows text).
+      await waitForValue(page, "#smta_flight_no_prefix_foreigner", 5_000);
+    }
+    // Fallback only if the cascade never populated the code.
+    const codeLoc = page.locator("#smta_flight_no_prefix_foreigner");
+    if (!(await codeLoc.inputValue().catch(() => ""))) {
+      await codeLoc.click().catch(() => {});
+      await codeLoc.pressSequentially(flightPrefix, { delay: 40 }).catch(() => {});
+    }
+  }
+  if (flightDigits) {
+    const noLoc = page.locator("#smta_flight_no_foreigner");
+    await noLoc.click().catch(() => {});
+    await noLoc.pressSequentially(flightDigits, { delay: 40 }).catch(() => {});
   }
 
   // Accommodation
@@ -260,6 +367,10 @@ async function fillStep3(page: Page, t: ArrivalPassTraveler) {
     await page.waitForTimeout(1500);
     // Click first result.
     await page.locator('[data-virtuoso-scroller="true"] [data-index="0"]').first().click({ force: true });
+    // Selecting the hotel cascades the Nearest Immigration Office field async.
+    // Wait for it to commit, else Next fires with it still empty (phantom
+    // "required" error).
+    await waitForValue(page, "#smta_hotel_nearest_immigration_office_foreigner", 8_000);
   } else if (accomm === "RESIDENTIAL") {
     if (t.indonesia?.residentialAddress) {
       // TODO: confirm field id for residential address — likely a textarea.
@@ -306,37 +417,118 @@ async function fillStep4(page: Page, t: ArrivalPassTraveler, captchaCode: string
 
 // ---- Click + virtuoso helpers (lifted from recon scripts) ----
 
-async function clickByText(page: Page, text: string) {
-  await page.evaluate((label) => {
-    const btn = [...document.querySelectorAll("button, [role='button']")].find(
-      (b) => (b.textContent || "").trim() === label && !(b as HTMLButtonElement).disabled,
-    ) as HTMLElement | undefined;
-    if (btn) {
-      btn.scrollIntoView({ behavior: "instant", block: "center" });
-      btn.click();
+/**
+ * Click an element by its exact visible text. Polls until the element appears
+ * (the form is a React SPA that re-renders after navigation / locale switch),
+ * then clicks. Handles two shapes:
+ *   1. a real <button> / [role=button] with that label, or
+ *   2. a text leaf (<h4>/<div>/<span>) inside a cursor:pointer wrapper — the
+ *      "Foreign Visitor" entry card and similar controls are NOT buttons.
+ * Throws if the label never appears within `timeoutMs` (loud failure beats a
+ * confusing waitForURL timeout much later).
+ */
+async function clickByText(page: Page, text: string, timeoutMs = 12_000) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const clicked = await page
+      .evaluate((label) => {
+        const btn = [...document.querySelectorAll("button, [role='button']")].find(
+          (b) => (b.textContent || "").trim() === label && !(b as HTMLButtonElement).disabled,
+        ) as HTMLElement | undefined;
+        if (btn) {
+          btn.scrollIntoView({ behavior: "instant", block: "center" });
+          btn.click();
+          return true;
+        }
+        const leaves = [...document.querySelectorAll("h1,h2,h3,h4,p,div,span,a,li")];
+        const node = leaves.find(
+          (n) => n.children.length === 0 && (n.textContent || "").trim() === label,
+        ) as HTMLElement | undefined;
+        if (!node) return false;
+        let cur: HTMLElement | null = node;
+        for (let i = 0; i < 10 && cur; i++, cur = cur.parentElement) {
+          if (getComputedStyle(cur).cursor === "pointer") {
+            cur.scrollIntoView({ behavior: "instant", block: "center" });
+            cur.click();
+            return true;
+          }
+        }
+        node.scrollIntoView({ behavior: "instant", block: "center" });
+        node.click();
+        return true;
+      }, text)
+      // The page may be mid-navigation (context destroyed) — treat as not-yet
+      // and retry rather than crashing.
+      .catch(() => false);
+    if (clicked) return;
+    if (Date.now() > deadline) {
+      throw new Error(`clickByText: no element matched "${text}" within ${timeoutMs}ms`);
     }
-  }, text);
+    await page.waitForTimeout(400);
+  }
+}
+
+/**
+ * The site defaults to Indonesian; the adapter matches English labels
+ * ("Foreign Visitor", "Next", "Submit", section headers) throughout, so flip
+ * the UI to English before walking the flow. Selecting English triggers a
+ * locale reload that destroys the execution context — tolerate that and wait
+ * for the reload to settle. Best-effort: already-English sessions are a no-op
+ * (the subsequent polling clickByText absorbs any timing slack).
+ */
+async function switchToEnglish(page: Page) {
+  await clickByText(page, "Languages", 8_000).catch(() => {});
+  await page.waitForTimeout(600);
+  await page
+    .evaluate(() => {
+      const node = [...document.querySelectorAll("li,button,a,div,span")].find(
+        (n) => (n.textContent || "").trim() === "English",
+      ) as HTMLElement | undefined;
+      if (!node) return;
+      let cur: HTMLElement | null = node;
+      for (let i = 0; i < 8 && cur; i++, cur = cur.parentElement) {
+        if (getComputedStyle(cur).cursor === "pointer") {
+          cur.click();
+          return;
+        }
+      }
+      node.click();
+    })
+    .catch(() => {});
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.waitForTimeout(800);
 }
 
 async function openVirtuoso(page: Page, idOrSelector: string) {
-  await page.evaluate((sel) => {
-    const inp = document.querySelector(sel) as HTMLElement | null;
-    if (!inp) return;
-    let n: HTMLElement | null = inp;
-    let target: HTMLElement = inp;
-    for (let i = 0; i < 6 && n; i++, n = n.parentElement) {
-      if (getComputedStyle(n).cursor === "pointer") { target = n; break; }
-    }
-    const r = target.getBoundingClientRect();
-    const opts = {
-      bubbles: true, cancelable: true,
-      clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, view: window,
-    };
-    target.dispatchEvent(new MouseEvent("mousedown", opts));
-    target.dispatchEvent(new MouseEvent("mouseup", opts));
-    target.dispatchEvent(new MouseEvent("click", opts));
-  }, idOrSelector);
-  await page.waitForSelector('[data-virtuoso-scroller="true"]', { timeout: 5_000 }).catch(() => {});
+  // Wait for the field to exist — each step mounts behind a brief loading state,
+  // and firing the open click before the field renders silently does nothing
+  // (the dropdown never appears). Then retry the open until the scroller shows.
+  await page.waitForSelector(idOrSelector, { state: "visible", timeout: 12_000 }).catch(() => {});
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await page.evaluate((sel) => {
+      const inp = document.querySelector(sel) as HTMLElement | null;
+      if (!inp) return;
+      let n: HTMLElement | null = inp;
+      let target: HTMLElement = inp;
+      for (let i = 0; i < 6 && n; i++, n = n.parentElement) {
+        if (getComputedStyle(n).cursor === "pointer") { target = n; break; }
+      }
+      const r = target.getBoundingClientRect();
+      const opts = {
+        bubbles: true, cancelable: true,
+        clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, view: window,
+      };
+      target.dispatchEvent(new MouseEvent("mousedown", opts));
+      target.dispatchEvent(new MouseEvent("mouseup", opts));
+      target.dispatchEvent(new MouseEvent("click", opts));
+    }, idOrSelector);
+    const opened = await page
+      .waitForSelector('[data-virtuoso-scroller="true"]', { timeout: 3_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (opened) return;
+    await page.waitForTimeout(500);
+  }
 }
 
 async function typeIntoSearch(page: Page, text: string) {
@@ -349,33 +541,46 @@ async function typeIntoSearch(page: Page, text: string) {
 async function pickFromVirtuoso(page: Page, idOrSelector: string, exactText: string) {
   await openVirtuoso(page, idOrSelector);
   await page.waitForTimeout(400);
+  // These pickers are virtualized (only ~16 rows rendered at a time) but have a
+  // search box. Typing filters the list so the target renders immediately —
+  // the scroll-only approach silently misses entries far down a long list
+  // (e.g. "UNITED STATES OF AMERICA"). Best-effort: no-op if there's no search.
+  await typeIntoSearch(page, exactText);
+  await page.waitForTimeout(700);
   for (let pass = 0; pass < 80; pass++) {
-    const found = await page.evaluate((text) => {
+    // Locate the row by EXACT text and return its data-index. We do NOT click
+    // inside evaluate: a synthetic .click()/dispatchEvent fires React's onClick
+    // for some pickers (country lists) but NOT others (the date picker) — a real
+    // Playwright click works universally. So find here, click via Playwright.
+    const dataIndex = await page.evaluate((text) => {
       const s = document.querySelector('[data-virtuoso-scroller="true"]') as HTMLElement | null;
-      if (!s) return { ok: false, done: true };
+      if (!s) return "__noscroller__";
       const rows = [...s.querySelectorAll("[data-index]")] as HTMLElement[];
-      for (const r of rows) {
-        if ((r.textContent || "").trim() === text) {
-          const inner = (r.querySelector(".") || r) as HTMLElement;
-          const rect = inner.getBoundingClientRect();
-          const opts = {
-            bubbles: true, cancelable: true,
-            clientX: rect.left + 20, clientY: rect.top + rect.height / 2, view: window,
-          };
-          inner.dispatchEvent(new MouseEvent("mousedown", opts));
-          inner.dispatchEvent(new MouseEvent("mouseup", opts));
-          inner.dispatchEvent(new MouseEvent("click", opts));
-          inner.click();
-          return { ok: true };
-        }
-      }
+      const match = rows.find((r) => (r.textContent || "").trim() === text);
+      if (match) return match.getAttribute("data-index");
       s.scrollTop = s.scrollTop + s.clientHeight * 0.7;
-      return { ok: false };
+      return "__scroll__";
     }, exactText);
-    if (found.ok) return true;
-    if (found.done) return false;
+    if (dataIndex === "__noscroller__") {
+      if (process.env.INDONESIA_RECON_DEBUG === "1")
+        console.log(`[id-recon] pick "${exactText}" on ${idOrSelector}: NO SCROLLER (picker didn't open)`);
+      return false;
+    }
+    if (dataIndex && dataIndex !== "__scroll__") {
+      await page
+        .locator(`[data-virtuoso-scroller="true"] [data-index="${dataIndex}"]`)
+        .first()
+        .click({ force: true })
+        .catch(() => {});
+      await page.waitForTimeout(300);
+      if (process.env.INDONESIA_RECON_DEBUG === "1")
+        console.log(`[id-recon] pick "${exactText}" on ${idOrSelector}: clicked data-index=${dataIndex} (pass ${pass})`);
+      return true;
+    }
     await page.waitForTimeout(120);
   }
+  if (process.env.INDONESIA_RECON_DEBUG === "1")
+    console.log(`[id-recon] pick "${exactText}" on ${idOrSelector}: NOT FOUND after 80 passes`);
   return false;
 }
 
@@ -436,7 +641,16 @@ function isoToDdmmyyyy(iso: string): string {
 }
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const MONTHS_FULL = [
+  "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+  "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
+];
 function isoToDdMmmYyyy(iso: string): string {
   const [y, m, d] = iso.split("-");
   return `${d.padStart(2, "0")} ${MONTHS[parseInt(m, 10) - 1]} ${y}`;
+}
+/** "2026-07-01" -> "01 JULY 2026" — the arrival-date picker uses full month names. */
+function isoToDdMonthYyyy(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d.padStart(2, "0")} ${MONTHS_FULL[parseInt(m, 10) - 1]} ${y}`;
 }

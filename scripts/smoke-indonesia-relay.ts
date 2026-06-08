@@ -15,11 +15,13 @@ const burner: ArrivalPassTraveler = {
   countryOfBirthIso3: "USA",
   passportNumber: "X0000001",
   passportExpiry: "2030-12-31",
-  email: "test+recon@example.invalid",
+  email: "arrivalpass.smoke@gmail.com",
   mobileDialCode: "+1",
   mobileNumber: "5551234567",
-  arrivalDate: "2026-07-01",
-  departureDate: "2026-07-08",
+  // Indonesia only offers arrival dates within ~3 days of "today" (gov filing
+  // window). Use a near date so the recon can proceed; adjust if run later.
+  arrivalDate: "2026-06-10",
+  departureDate: "2026-06-17",
   indonesia: {
     purposeTravel: "HOLIDAY/SIGHTSEEING/LEISURE",
     placeArrivalIata: "CGK",
