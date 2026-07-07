@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { hasProfile } from "@/lib/storage";
 
 export default function LandingPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  // localStorage is client-only — check after hydration to avoid a mismatch.
+  useEffect(() => {
+    setProfileSaved(hasProfile());
+  }, []);
 
   const startFiling = () => {
     trackEvent(ANALYTICS_EVENTS.formStarted, { source: "landing" });
@@ -52,6 +59,17 @@ export default function LandingPage() {
 
       {/* CTA / email capture */}
       <section className="px-6 py-8 max-w-lg mx-auto space-y-4">
+        {profileSaved && (
+          <button
+            onClick={() => {
+              trackEvent(ANALYTICS_EVENTS.formStarted, { source: "landing_saved_profile" });
+              router.push("/form?mode=saved");
+            }}
+            className="w-full bg-[#CC0001] hover:bg-red-700 text-white font-semibold text-base py-3.5 rounded-xl active:scale-95"
+          >
+            Continue with saved profile →
+          </button>
+        )}
         <form onSubmit={captureEmail} className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700">
             Email (we&apos;ll only use it if filing fails so we can warn you in time)
@@ -77,6 +95,12 @@ export default function LandingPage() {
         >
           Skip — just take me to the form
         </button>
+        <p className="text-center text-sm text-gray-500">
+          Network School member?{" "}
+          <a className="underline font-semibold text-[#003893]" href="/ns">
+            Use the one tap Forest City flow
+          </a>
+        </p>
       </section>
 
       {/* Gray-zone disclosure (above the fold-ish, hard to miss) */}

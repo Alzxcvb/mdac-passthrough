@@ -14,6 +14,7 @@ interface Props {
   data: FormData;
   onChange: (updates: Partial<FormData>) => void;
   onNext: () => void;
+  nextLabel?: string;
 }
 
 interface FieldProps {
@@ -36,7 +37,7 @@ function Field({ label, hint, children, required }: FieldProps) {
   );
 }
 
-export default function PersonalStep({ data, onChange, onNext }: Props) {
+export default function PersonalStep({ data, onChange, onNext, nextLabel }: Props) {
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [natSearch, setNatSearch] = useState(data.nationality);
   const [showNatDropdown, setShowNatDropdown] = useState(false);
@@ -452,7 +453,7 @@ export default function PersonalStep({ data, onChange, onNext }: Props) {
         onClick={handleNext}
         className="w-full bg-[#CC0001] hover:bg-red-700 text-white font-semibold text-base py-4 rounded-2xl transition-all active:scale-95 mt-2"
       >
-        Next: Travel Details
+        {nextLabel ?? "Next: Travel Details"}
       </button>
     </div>
   );
