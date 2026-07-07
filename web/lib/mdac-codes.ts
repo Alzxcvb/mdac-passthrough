@@ -318,23 +318,31 @@ export function resolveCountryName(value: string): string {
 
 // ---- Malaysian state → official code ----
 
+// Codes verified against the live MDAC city endpoint (retrieveRefCity&state=NN)
+// on 2026-07-07 — each state's `NN00` option label names the state. The federal
+// territories are separate codes 14/15/16, NOT inline alphabetical.
 export const STATE_TO_CODE: Record<string, string> = {
   Johor: "01",
   Kedah: "02",
   Kelantan: "03",
-  "Kuala Lumpur": "04",
-  Labuan: "05",
-  Melaka: "06",
-  "Negeri Sembilan": "07",
-  Pahang: "08",
-  Penang: "09",
-  Perak: "10",
-  Perlis: "11",
-  Putrajaya: "12",
-  Sabah: "13",
-  Sarawak: "14",
-  Selangor: "15",
-  Terengganu: "16",
+  Melaka: "04",
+  "Negeri Sembilan": "05",
+  Pahang: "06",
+  "Pulau Pinang": "07",
+  Perak: "08",
+  Perlis: "09",
+  Selangor: "10",
+  Terengganu: "11",
+  Sabah: "12",
+  Sarawak: "13",
+  "WP Kuala Lumpur": "14",
+  "WP Labuan": "15",
+  "WP Putrajaya": "16",
+  // Aliases for older label spellings that may live in saved profiles/drafts
+  Penang: "07",
+  "Kuala Lumpur": "14",
+  Labuan: "15",
+  Putrajaya: "16",
 };
 
 // ---- Simple code maps ----
